@@ -49,7 +49,7 @@ export function IdentityField() {
           <span
             className="block font-technical font-semibold leading-none tracking-[-0.07em]"
             style={{
-              fontSize: "clamp(5rem, 21vw, 19rem)",
+              fontSize: "clamp(3.4rem, 26vw, 19rem)",
               color: "rgba(243,241,234,0.05)",
               WebkitTextStroke: "1px rgba(243,241,234,0.32)",
             }}
@@ -59,7 +59,7 @@ export function IdentityField() {
           <span
             className="identity-shine absolute inset-0 block bg-clip-text font-technical font-semibold leading-none tracking-[-0.07em] text-transparent"
             style={{
-              fontSize: "clamp(5rem, 21vw, 19rem)",
+              fontSize: "clamp(3.4rem, 26vw, 19rem)",
               backgroundImage: "linear-gradient(100deg, transparent 38%, rgba(255,255,255,0.6) 50%, transparent 62%)",
               backgroundSize: "260% 100%",
             }}
@@ -67,17 +67,17 @@ export function IdentityField() {
             PARDIS
           </span>
         </div>
-        <p className="mt-2 text-[clamp(1rem,2.4vw,1.6rem)] font-medium text-cloud/85">در و پنجره پردیس</p>
-        <p className="mt-3 font-technical text-[10px] uppercase tracking-[0.42em] text-cloud/45">
+        <p className="mt-3 text-[clamp(1.05rem,4.4vw,1.6rem)] font-medium text-cloud/85 md:mt-2">در و پنجره پردیس</p>
+        <p className="mt-3 px-6 text-center font-technical text-[8.5px] uppercase leading-relaxed tracking-[0.3em] text-cloud/45 sm:text-[10px] sm:tracking-[0.42em]">
           Architecture × Material × Light × Engineering
         </p>
       </div>
 
       {/* corner technical marks */}
-      <div className="absolute left-6 top-[62%] mt-3 font-technical text-[9px] uppercase tracking-[0.3em] text-cloud/35 md:left-10">
+      <div className="absolute left-5 top-[62%] mt-3 hidden font-technical text-[9px] uppercase tracking-[0.3em] text-cloud/35 sm:block md:left-10">
         Horizon · 00
       </div>
-      <div className="absolute right-6 top-[62%] mt-3 font-technical text-[9px] uppercase tracking-[0.3em] text-cloud/35 md:right-10">
+      <div className="absolute right-5 top-[62%] mt-3 hidden font-technical text-[9px] uppercase tracking-[0.3em] text-cloud/35 sm:block md:right-10">
         Sabzevar · Iran
       </div>
 

@@ -120,7 +120,10 @@ export function WindowThreshold() {
 
         {/* Layer 1 — the window rig */}
         <div ref={overlayRef} className="absolute inset-0 flex items-center justify-center px-4">
-          <div className="relative aspect-[16/10] w-[min(94vw,1200px)] max-h-[78vh]" style={{ perspective: "2200px" }}>
+          <div
+            className="relative aspect-[5/7] w-[min(88vw,1200px)] max-h-[72dvh] sm:aspect-[4/3] md:aspect-[16/10] md:w-[min(94vw,1200px)] md:max-h-[78vh]"
+            style={{ perspective: "2200px" }}
+          >
             <div className="absolute inset-0 rounded-[6px] border-[10px] border-graphite-soft shadow-[0_60px_120px_-40px_rgba(0,0,0,0.7)] md:border-[14px]">
               <CornerMark className="-left-px -top-px" />
               <CornerMark className="-right-px -top-px rotate-90" />
