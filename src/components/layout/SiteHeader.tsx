@@ -27,6 +27,7 @@ export function SiteHeader() {
 
   const navRef = useRef<HTMLElement>(null);
   const markRef = useRef<HTMLSpanElement>(null);
+  const hoverRef = useRef<HTMLSpanElement>(null);
   const itemsRef = useRef<Record<string, HTMLAnchorElement | null>>({});
 
   useEffect(() => {
@@ -141,8 +142,32 @@ export function SiteHeader() {
             </Link>
 
             {/* ── destinations ─────────────────────────────────── */}
-            <nav ref={navRef} aria-label="ناوبری اصلی" className="nv-row hidden lg:flex">
-              {navLinks.map((link, i) => {
+            {/* A single pill of light follows the pointer between
+                destinations, so hover reads as one continuous material
+                rather than six separate boxes lighting up. */}
+            <nav
+              ref={navRef}
+              aria-label="ناوبری اصلی"
+              className="nv-row hidden lg:flex"
+              onPointerLeave={() => {
+                const g = hoverRef.current;
+                if (g) g.style.opacity = "0";
+              }}
+              onPointerMove={(e) => {
+                const g = hoverRef.current;
+                const nav = navRef.current;
+                if (!g || !nav) return;
+                const target = (e.target as HTMLElement).closest<HTMLAnchorElement>(".nv-a");
+                if (!target) {
+                  g.style.opacity = "0";
+                  return;
+                }
+                g.style.opacity = "1";
+                g.style.width = `${target.offsetWidth}px`;
+                g.style.transform = `translate3d(${target.offsetLeft}px, 0, 0)`;
+              }}
+            >
+              {navLinks.map((link) => {
                 const active = pathname === link.href;
                 return (
                   <Link
@@ -164,12 +189,12 @@ export function SiteHeader() {
                           : "text-ink-soft hover:text-ink",
                     )}
                   >
-                    <span className="nv-i">{faDigits(String(i + 1).padStart(2, "0"))}</span>
-                    <span>{link.label}</span>
+                    <span className="nv-t">{link.label}</span>
                     <span className="nv-shaft" aria-hidden />
                   </Link>
                 );
               })}
+              <span ref={hoverRef} className="nv-glow" aria-hidden style={{ opacity: 0 }} />
               <span ref={markRef} className="nv-mark" aria-hidden style={{ opacity: 0 }} />
             </nav>
 
@@ -190,12 +215,13 @@ export function SiteHeader() {
                 href="/contact"
                 data-cursor="order"
                 className={cn(
-                  "hidden items-center gap-2 rounded-[9px] px-4 py-2.5 text-[12.5px] font-semibold transition-colors duration-300 md:inline-flex",
+                  "nv-cta group/cta relative hidden items-center gap-2 overflow-hidden rounded-[10px] px-4 py-2.5 text-[12.5px] font-semibold transition-[background-color,color,transform,box-shadow] duration-300 active:scale-[.97] md:inline-flex",
                   dark ? "bg-cloud text-ink hover:bg-argon hover:text-cloud" : "bg-ink text-cloud hover:bg-argon",
                 )}
               >
-                <span className="size-1.5 rounded-full bg-argon-glow" />
-                استعلام و مشاوره
+                <span className="nv-pulse relative size-1.5 rounded-full bg-argon-glow" />
+                <span className="relative">استعلام و مشاوره</span>
+                <span aria-hidden className="nv-sheen" />
               </Link>
 
               <button
@@ -204,13 +230,25 @@ export function SiteHeader() {
                 aria-expanded={open}
                 aria-label={open ? "بستن منو" : "باز کردن منو"}
                 className={cn(
-                  "flex size-9 items-center justify-center rounded-[9px] border lg:hidden",
-                  dark ? "border-white/18 text-cloud" : "border-ink/14 text-ink",
+                  "relative flex size-10 shrink-0 items-center justify-center rounded-[11px] border transition-[background-color,border-color,transform] duration-300 active:scale-[.94] lg:hidden",
+                  dark
+                    ? "border-white/18 text-cloud active:bg-white/[.07]"
+                    : "border-ink/14 text-ink active:bg-ink/[.05]",
                 )}
               >
-                <span className="flex flex-col gap-1.5">
-                  <span className={cn("block h-px w-4 bg-current transition-transform duration-300", open && "translate-y-[3.5px] rotate-45")} />
-                  <span className={cn("block h-px w-4 bg-current transition-transform duration-300", open && "-translate-y-[3.5px] -rotate-45")} />
+                <span className="flex flex-col gap-[5px]">
+                  <span
+                    className={cn(
+                      "block h-px w-[17px] origin-center bg-current transition-transform duration-[420ms] ease-[cubic-bezier(.16,1,.3,1)]",
+                      open && "translate-y-[3px] rotate-45",
+                    )}
+                  />
+                  <span
+                    className={cn(
+                      "block h-px w-[17px] origin-center bg-current transition-transform duration-[420ms] ease-[cubic-bezier(.16,1,.3,1)]",
+                      open && "-translate-y-[3px] -rotate-45",
+                    )}
+                  />
                 </span>
               </button>
             </div>
@@ -234,8 +272,8 @@ export function SiteHeader() {
         <nav
           aria-label="ناوبری موبایل"
           className={cn(
-            "absolute inset-x-3 top-[calc(env(safe-area-inset-top)+var(--nv-h))] max-h-[calc(100dvh-var(--nv-h)-env(safe-area-inset-top)-1.5rem)] overflow-y-auto overscroll-contain rounded-[18px] border border-white/[0.1] bg-[#0d0f13]/96 shadow-[0_40px_120px_-30px_rgba(0,0,0,.9)] backdrop-blur-2xl transition-all duration-500 ease-[cubic-bezier(.16,1,.3,1)]",
-            open ? "translate-y-0 opacity-100" : "-translate-y-4 opacity-0",
+            "nv-sheet absolute inset-x-3 top-[calc(env(safe-area-inset-top)+var(--nv-h))] max-h-[calc(100dvh-var(--nv-h)-env(safe-area-inset-top)-1.5rem)] overflow-y-auto overscroll-contain rounded-[20px] border border-white/[0.1] bg-[#0d0f13]/95 shadow-[0_40px_120px_-30px_rgba(0,0,0,.9)] backdrop-blur-2xl transition-[transform,opacity] duration-[560ms] ease-[cubic-bezier(.16,1,.3,1)]",
+            open ? "translate-y-0 scale-100 opacity-100" : "-translate-y-3 scale-[.985] opacity-0",
           )}
           style={{ ["--nv-h" as string]: scrolled ? "66px" : "74px" }}
         >
@@ -246,20 +284,29 @@ export function SiteHeader() {
                 <Link
                   key={link.href}
                   href={link.href}
-                  style={{ transitionDelay: open ? `${55 + i * 32}ms` : "0ms" }}
+                  aria-current={active ? "page" : undefined}
+                  style={{ transitionDelay: open ? `${60 + i * 38}ms` : "0ms" }}
                   className={cn(
-                    "flex items-center justify-between border-b border-white/[0.06] px-3 py-3.5 transition-all duration-300 last:border-b-0",
-                    open ? "translate-x-0 opacity-100" : "translate-x-3 opacity-0",
-                    active ? "text-argon-glow" : "text-cloud/80",
+                    "nv-m group/mi relative flex items-center justify-between overflow-hidden rounded-[13px] px-3.5 py-3.5 transition-[transform,opacity,background-color,color] duration-[520ms] ease-[cubic-bezier(.16,1,.3,1)] active:scale-[.985]",
+                    open ? "translate-y-0 opacity-100" : "translate-y-2.5 opacity-0",
+                    active ? "text-cloud" : "text-cloud/72",
                   )}
                 >
-                  <span className="flex items-baseline gap-3">
-                    <span className="font-technical text-[8.5px] tabular-nums opacity-50">
-                      {faDigits(String(i + 1).padStart(2, "0"))}
-                    </span>
-                    <span className="text-[15px] font-semibold">{link.label}</span>
+                  {/* active row reads as a lit opening */}
+                  {active && <span aria-hidden className="nv-m-lit" />}
+                  <span className="relative flex items-center gap-3">
+                    <span aria-hidden className={cn("nv-m-dot", active && "is-on")} />
+                    <span className="text-[15.5px] font-semibold tracking-tight">{link.label}</span>
                   </span>
-                  <span aria-hidden className="text-sm opacity-40">←</span>
+                  <span
+                    aria-hidden
+                    className={cn(
+                      "relative text-[13px] transition-transform duration-500 ease-[cubic-bezier(.16,1,.3,1)]",
+                      active ? "text-argon-glow opacity-90" : "opacity-35",
+                    )}
+                  >
+                    ←
+                  </span>
                 </Link>
               );
             })}
@@ -271,7 +318,11 @@ export function SiteHeader() {
               <a href={`tel:${company.phones[0]}`} className="font-technical text-[12px] tabular-nums text-cloud/60">
                 {faDigits(company.phones[0])}
               </a>
-              <Link href="/contact" className="rounded-[9px] bg-cloud px-4 py-2.5 text-[12.5px] font-semibold text-ink">
+              <Link
+                href="/contact"
+                className="relative flex items-center gap-2 overflow-hidden rounded-[10px] bg-cloud px-4 py-2.5 text-[12.5px] font-semibold text-ink transition-transform duration-300 active:scale-[.97]"
+              >
+                <span className="nv-pulse size-1.5 rounded-full bg-argon" />
                 استعلام و مشاوره
               </Link>
             </div>
