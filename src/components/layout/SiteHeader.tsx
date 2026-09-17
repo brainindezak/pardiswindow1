@@ -416,11 +416,27 @@ export function SiteHeader() {
         />
 
         <div className="relative flex h-full flex-col">
-          {/* the panel's own top row, aligned to the bar it replaces */}
+          {/* The panel's own top row. The close button sits on the INLINE-END
+              side (left in RTL is where the row chevrons live, so putting it
+              there made it read as part of the list). Keeping it inline-start
+              — the same corner as the toggle that opened the menu — means the
+              thumb returns to where it just was, and the control never lines
+              up with the list's own affordances. */}
           <div
             className="flex shrink-0 items-center justify-between px-6 pt-[calc(env(safe-area-inset-top)+1.25rem)]"
             style={{ minHeight: "64px" }}
           >
+            <button
+              ref={closeRef}
+              type="button"
+              onClick={closeSheet}
+              aria-label="بستن منو"
+              className="-ms-2.5 flex size-11 items-center justify-center rounded-full border border-white/[0.09] text-cloud/60 transition-colors active:bg-white/[.07] active:text-cloud"
+            >
+              <svg viewBox="0 0 24 24" className="size-[18px]" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+                <path d="M6 6l12 12M18 6L6 18" />
+              </svg>
+            </button>
             <span
               className={cn(
                 "font-technical text-[9.5px] uppercase tracking-[0.34em] text-cloud/40 transition-all duration-500",
@@ -429,21 +445,10 @@ export function SiteHeader() {
             >
               Index
             </span>
-            <button
-              ref={closeRef}
-              type="button"
-              onClick={closeSheet}
-              aria-label="بستن منو"
-              className="-me-2.5 flex size-11 items-center justify-center rounded-full text-cloud/60 transition-colors active:bg-white/[.07] active:text-cloud"
-            >
-              <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
-                <path d="M6 6l12 12M18 6L6 18" />
-              </svg>
-            </button>
           </div>
 
           {/* ── the index itself ─────────────────────────────────── */}
-          <nav aria-label="ناوبری موبایل" className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-6 pt-4">
+          <nav aria-label="ناوبری موبایل" className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-6 pt-7">
             <ul className="flex flex-col">
               {navLinks.map((link, i) => {
                 const active = pathname === link.href;
