@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
+import { useEffect, useRef, useState } from "react";
 import { company, navLinks } from "@/lib/content";
 import { cn, faDigits } from "@/lib/utils";
 
@@ -19,20 +19,23 @@ import { cn, faDigits } from "@/lib/utils";
  * different container, which is why it never aligned.
  */
 export function SiteHeader() {
-  const pathname = usePathname();
+  const rawPathname = usePathname();
+  /* `output: export` serves directory-style URLs, so the live pathname is
+     `/quality/` while navLinks hold `/quality`. Without normalising, the
+     active destination is never matched and the current page loses its
+     marker in both the rail and the mobile index. */
+  const pathname =
+    rawPathname !== "/" && rawPathname.endsWith("/") ? rawPathname.slice(0, -1) : rawPathname;
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [dark, setDark] = useState(false);
   const [progress, setProgress] = useState(0);
-  const [drag, setDrag] = useState(0);
-  const [dragging, setDragging] = useState(false);
 
   const navRef = useRef<HTMLElement>(null);
   const barRef = useRef<HTMLDivElement>(null);
-  const sheetRef = useRef<HTMLElement>(null);
   const toggleRef = useRef<HTMLButtonElement>(null);
+  const closeRef = useRef<HTMLButtonElement>(null);
   const openRef = useRef(false);
-  const dragStart = useRef<number | null>(null);
   const markRef = useRef<HTMLSpanElement>(null);
   const hoverRef = useRef<HTMLSpanElement>(null);
   const itemsRef = useRef<Record<string, HTMLAnchorElement | null>>({});
@@ -111,10 +114,7 @@ export function SiteHeader() {
   // Close the sheet on navigation, scheduled so it does not cascade a
   // render synchronously inside the effect.
   useEffect(() => {
-    const id = requestAnimationFrame(() => {
-      setDrag(0);
-      setOpen(false);
-    });
+    const id = requestAnimationFrame(() => setOpen(false));
     return () => cancelAnimationFrame(id);
   }, [pathname]);
 
@@ -145,38 +145,6 @@ export function SiteHeader() {
     };
   }, [open]);
 
-  /* ── swipe-down-to-dismiss ──────────────────────────────────────
-     Only starts from a downward gesture that begins while the list is
-     already scrolled to the top, so it never fights the scroll. */
-  const onSheetPointerDown = (e: ReactPointerEvent) => {
-    if (e.pointerType === "mouse") return;
-    const scroller = sheetRef.current?.querySelector(".overflow-y-auto");
-    if (scroller && scroller.scrollTop > 0) return;
-    dragStart.current = e.clientY;
-  };
-
-  const onSheetPointerMove = (e: ReactPointerEvent) => {
-    if (dragStart.current === null) return;
-    const delta = e.clientY - dragStart.current;
-    if (delta <= 0) {
-      if (dragging) setDrag(0);
-      return;
-    }
-    if (!dragging) setDragging(true);
-    // Resist past the halfway point so the sheet feels physical.
-    setDrag(delta > 120 ? 120 + (delta - 120) * 0.35 : delta);
-  };
-
-  const onSheetPointerUp = () => {
-    if (dragStart.current === null) return;
-    dragStart.current = null;
-    setDragging(false);
-    setDrag((d) => {
-      if (d > 110) setOpen(false);
-      return 0;
-    });
-  };
-
   /* Mirror `open` into a ref the scroll sampler can read without
      re-subscribing. The drag offset is reset at each call site that closes
      the sheet, so no state is synced from an effect. */
@@ -184,29 +152,44 @@ export function SiteHeader() {
     openRef.current = open;
   }, [open]);
 
-  const closeSheet = () => {
-    setDrag(0);
-    setOpen(false);
-  };
+  const closeSheet = () => setOpen(false);
 
   /* Keyboard + focus contract for the sheet: Escape closes it, focus moves
      into it on open and returns to the toggle on close. */
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        setDrag(0);
-        setOpen(false);
+      if (e.key === "Escape") setOpen(false);
+    };
+    /* The menu covers the page, so it must own the keyboard while open:
+       Tab cycles within it and focus returns to the toggle on close. */
+    const trap = (e: KeyboardEvent) => {
+      if (e.key !== "Tab") return;
+      const panel = document.getElementById("mobile-nav");
+      if (!panel) return;
+      const nodes = Array.from(
+        panel.querySelectorAll<HTMLElement>('a[href],button:not([disabled])'),
+      ).filter((el) => el.offsetParent !== null);
+      if (nodes.length === 0) return;
+      const first = nodes[0];
+      const last = nodes[nodes.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
       }
     };
+
     window.addEventListener("keydown", onKey);
+    window.addEventListener("keydown", trap);
     const toggle = toggleRef.current;
-    const t = window.setTimeout(() => {
-      sheetRef.current?.querySelector<HTMLElement>("a[href]")?.focus();
-    }, 260);
+    const t = window.setTimeout(() => closeRef.current?.focus(), 220);
     return () => {
       window.clearTimeout(t);
       window.removeEventListener("keydown", onKey);
+      window.removeEventListener("keydown", trap);
       toggle?.focus();
     };
   }, [open]);
@@ -398,133 +381,156 @@ export function SiteHeader() {
         </div>
       </header>
 
-      {/* ══ MOBILE NAVIGATION ═══════════════════════════════════
-          Rebuilt as a bottom sheet rather than a dropdown hanging off the
-          bar. Three reasons this is the right shape on a phone:
-
-          1. Reachability — a top dropdown puts destinations at the far end
-             of the screen, the hardest place to reach one-handed. A bottom
-             sheet opens under the thumb.
-          2. It can never be clipped. The old panel was positioned from the
-             bar's height plus the safe-area inset; whenever that maths was
-             off the panel hung off-screen and read as "half visible".
-             Anchoring to the bottom edge removes the dependency entirely.
-          3. It is the platform-native pattern on both iOS and Android, so
-             it needs no explanation — including the drag handle and the
-             swipe-down-to-dismiss gesture.                               */}
+      {/* ══ MOBILE NAVIGATION — full-screen index ═══════════════════
+          A proper table of contents rather than a small popover: the panel
+          owns the whole screen, so nothing can clip it and the destinations
+          get the room to be set as real typography. Opens as a clean wipe
+          from the top; rows arrive in sequence.                          */}
       <div
+        id="mobile-nav"
         dir="rtl"
-        className={cn("fixed inset-0 z-[60] lg:hidden", open ? "pointer-events-auto" : "pointer-events-none")}
         aria-hidden={!open}
+        className={cn(
+          "nv-menu fixed inset-0 z-[60] lg:hidden",
+          open ? "pointer-events-auto" : "pointer-events-none",
+        )}
       >
-        {/* scrim */}
-        <button
-          type="button"
-          tabIndex={-1}
-          aria-label="بستن منو"
-          onClick={closeSheet}
+        {/* backdrop — its own layer so it can fade independently */}
+        <div
           className={cn(
-            "absolute inset-0 h-full w-full cursor-default bg-graphite/60 backdrop-blur-[6px] transition-opacity duration-500 ease-[cubic-bezier(.16,1,.3,1)]",
+            "absolute inset-0 bg-[#0a0b0e] transition-opacity duration-[420ms] ease-[cubic-bezier(.16,1,.3,1)]",
             open ? "opacity-100" : "opacity-0",
           )}
         />
-
-        <nav
-          ref={sheetRef}
-          id="mobile-nav"
-          aria-label="ناوبری موبایل"
-          style={{ transform: open ? `translate3d(0,${drag}px,0)` : undefined }}
-          onPointerDown={onSheetPointerDown}
-          onPointerMove={onSheetPointerMove}
-          onPointerUp={onSheetPointerUp}
-          onPointerCancel={onSheetPointerUp}
+        {/* a soft argon horizon low in the panel, echoing the hero */}
+        <div
+          aria-hidden
           className={cn(
-            "nv-sheet absolute inset-x-0 bottom-0 flex max-h-[88dvh] flex-col rounded-t-[26px] border-t border-white/[0.12] bg-[#0c0e12]/97 shadow-[0_-30px_90px_-20px_rgba(0,0,0,.85)] backdrop-blur-2xl",
-            dragging ? "transition-none" : "transition-transform duration-[520ms] ease-[cubic-bezier(.16,1,.3,1)]",
-            open ? "translate-y-0" : "translate-y-full",
+            "pointer-events-none absolute inset-x-0 bottom-0 h-[55%] transition-opacity duration-700",
+            open ? "opacity-100" : "opacity-0",
           )}
-        >
-          {/* drag handle — also the affordance for swipe-to-dismiss */}
-          <div className="grid shrink-0 cursor-grab touch-none place-items-center pb-1 pt-3 active:cursor-grabbing">
-            <span aria-hidden className="h-1 w-10 rounded-full bg-cloud/25" />
-          </div>
+          style={{
+            background:
+              "radial-gradient(120% 78% at 50% 118%, rgba(91,110,245,.28), transparent 68%)",
+          }}
+        />
 
-          <div className="flex items-center justify-between px-5 pb-3 pt-1">
-            <span className="font-technical text-[9.5px] uppercase tracking-[0.3em] text-cloud/40">Menu</span>
+        <div className="relative flex h-full flex-col">
+          {/* the panel's own top row, aligned to the bar it replaces */}
+          <div
+            className="flex shrink-0 items-center justify-between px-6 pt-[calc(env(safe-area-inset-top)+1.25rem)]"
+            style={{ minHeight: "64px" }}
+          >
+            <span
+              className={cn(
+                "font-technical text-[9.5px] uppercase tracking-[0.34em] text-cloud/40 transition-all duration-500",
+                open ? "translate-y-0 opacity-100 delay-[160ms]" : "-translate-y-1 opacity-0",
+              )}
+            >
+              Index
+            </span>
             <button
+              ref={closeRef}
               type="button"
               onClick={closeSheet}
               aria-label="بستن منو"
-              className="-me-1.5 flex size-11 items-center justify-center rounded-full text-cloud/55 transition-colors active:bg-white/[.06] active:text-cloud"
+              className="-me-2.5 flex size-11 items-center justify-center rounded-full text-cloud/60 transition-colors active:bg-white/[.07] active:text-cloud"
             >
-              <svg viewBox="0 0 24 24" className="size-[18px]" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
+              <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
                 <path d="M6 6l12 12M18 6L6 18" />
               </svg>
             </button>
           </div>
 
-          {/* destinations */}
-          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 pb-1">
-            {navLinks.map((link, i) => {
-              const active = pathname === link.href;
-              return (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  aria-current={active ? "page" : undefined}
-                  style={{ transitionDelay: open ? `${90 + i * 42}ms` : "0ms" }}
-                  className={cn(
-                    "nv-m relative flex items-center gap-3.5 rounded-[15px] px-4 py-[15px] transition-[transform,opacity,background-color] duration-[560ms] ease-[cubic-bezier(.16,1,.3,1)] active:scale-[.985] active:bg-white/[.05]",
-                    open ? "translate-y-0 opacity-100" : "translate-y-3 opacity-0",
-                    active ? "text-cloud" : "text-cloud/70",
-                  )}
-                >
-                  {active && <span aria-hidden className="nv-m-lit" />}
-                  <span aria-hidden className={cn("nv-m-dot", active && "is-on")} />
-                  <span className="relative flex-1 text-[16px] font-semibold tracking-tight">{link.label}</span>
-                  <svg
-                    aria-hidden
-                    viewBox="0 0 24 24"
-                    className={cn("relative size-4 shrink-0 transition-colors", active ? "text-argon-glow" : "text-cloud/25")}
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="1.8"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <path d="M15 6l-6 6 6 6" />
-                  </svg>
-                </Link>
-              );
-            })}
-          </div>
+          {/* ── the index itself ─────────────────────────────────── */}
+          <nav aria-label="ناوبری موبایل" className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-6 pt-4">
+            <ul className="flex flex-col">
+              {navLinks.map((link, i) => {
+                const active = pathname === link.href;
+                return (
+                  <li key={link.href} className="nv-li">
+                    <Link
+                      href={link.href}
+                      aria-current={active ? "page" : undefined}
+                      style={{ transitionDelay: open ? `${150 + i * 55}ms` : "0ms" }}
+                      className={cn(
+                        "nv-li-a group/li flex items-center justify-between gap-4 py-[18px] transition-[transform,opacity,color] duration-[620ms] ease-[cubic-bezier(.16,1,.3,1)]",
+                        open ? "translate-y-0 opacity-100" : "translate-y-5 opacity-0",
+                        active ? "text-cloud" : "text-cloud/75",
+                      )}
+                    >
+                      <span className="flex min-w-0 items-baseline gap-3.5">
+                        <span
+                          aria-hidden
+                          className={cn(
+                            "font-technical text-[10px] tabular-nums tracking-[0.18em] transition-colors",
+                            active ? "text-argon-glow" : "text-cloud/30",
+                          )}
+                        >
+                          {faDigits(String(i + 1).padStart(2, "0"))}
+                        </span>
+                        <span className="nv-li-label truncate text-[26px] font-semibold leading-tight tracking-[-0.015em]">
+                          {link.label}
+                        </span>
+                      </span>
 
-          {/* actions — pinned above the home indicator */}
+                      {active ? (
+                        <span aria-hidden className="nv-li-dot" />
+                      ) : (
+                        <svg
+                          aria-hidden
+                          viewBox="0 0 24 24"
+                          className="size-[18px] shrink-0 text-cloud/20"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="1.6"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <path d="M15 6l-6 6 6 6" />
+                        </svg>
+                      )}
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          </nav>
+
+          {/* ── actions, above the home indicator ─────────────────── */}
           <div
-            style={{ transitionDelay: open ? `${110 + navLinks.length * 42}ms` : "0ms" }}
+            style={{ transitionDelay: open ? `${180 + navLinks.length * 55}ms` : "0ms" }}
             className={cn(
-              "shrink-0 border-t border-white/[0.07] px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-4 transition-opacity duration-500",
-              open ? "opacity-100" : "opacity-0",
+              "shrink-0 px-6 pb-[calc(1.25rem+env(safe-area-inset-bottom))] pt-5 transition-all duration-[560ms] ease-[cubic-bezier(.16,1,.3,1)]",
+              open ? "translate-y-0 opacity-100" : "translate-y-3 opacity-0",
             )}
           >
             <Link
               href="/contact"
-              className="relative flex h-[52px] w-full items-center justify-center gap-2 overflow-hidden rounded-[15px] bg-cloud text-[14px] font-semibold text-ink transition-transform duration-300 active:scale-[.98]"
+              className="relative flex h-[54px] w-full items-center justify-center gap-2 overflow-hidden rounded-[16px] bg-cloud text-[14.5px] font-semibold text-ink transition-transform duration-300 active:scale-[.98]"
             >
               <span className="nv-pulse size-1.5 rounded-full bg-argon" />
               استعلام و مشاوره
             </Link>
-            <a
-              href={`tel:${company.phones[0]}`}
-              className="mt-2.5 flex h-[46px] w-full items-center justify-center gap-2 rounded-[15px] border border-white/[0.12] text-cloud/75 transition-colors active:bg-white/[.05]"
-            >
-              <svg aria-hidden viewBox="0 0 24 24" className="size-[15px] opacity-60" fill="none" stroke="currentColor" strokeWidth="1.7">
-                <path d="M6.6 10.8a15 15 0 006.6 6.6l2.2-2.2a1 1 0 011-.25 11.4 11.4 0 003.6.58 1 1 0 011 1V20a1 1 0 01-1 1A17 17 0 013 4a1 1 0 011-1h3.5a1 1 0 011 1c0 1.25.2 2.46.57 3.6a1 1 0 01-.25 1z" />
-              </svg>
-              <span className="font-technical text-[13px] tabular-nums tracking-wide">{faDigits(company.phones[0])}</span>
-            </a>
+
+            <div className="mt-4 flex items-center justify-between">
+              <a
+                href={`tel:${company.phones[0]}`}
+                className="flex items-center gap-2 text-cloud/60 transition-colors active:text-cloud"
+              >
+                <svg aria-hidden viewBox="0 0 24 24" className="size-[14px] opacity-70" fill="none" stroke="currentColor" strokeWidth="1.7">
+                  <path d="M6.6 10.8a15 15 0 006.6 6.6l2.2-2.2a1 1 0 011-.25 11.4 11.4 0 003.6.58 1 1 0 011 1V20a1 1 0 01-1 1A17 17 0 013 4a1 1 0 011-1h3.5a1 1 0 011 1c0 1.25.2 2.46.57 3.6a1 1 0 01-.25 1z" />
+                </svg>
+                <span className="font-technical text-[13px] tabular-nums tracking-wide">
+                  {faDigits(company.phones[0])}
+                </span>
+              </a>
+              <span className="font-technical text-[9px] uppercase tracking-[0.28em] text-cloud/25">
+                Sabzevar · Iran
+              </span>
+            </div>
           </div>
-        </nav>
+        </div>
       </div>
 
     </>

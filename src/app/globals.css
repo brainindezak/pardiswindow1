@@ -399,7 +399,11 @@
 }
 
 /* nav row is the positioning context for the marker */
-.nv-row { position: relative; display: flex; align-items: center; }
+/* NOTE: no `display` here. This rule is unlayered, so it would outrank
+   Tailwind's `hidden` utility and force the desktop rail to render on
+   phones — which is exactly what used to overflow the bar. Visibility is
+   owned entirely by the `hidden lg:flex` utilities in the markup. */
+.nv-row { position: relative; align-items: center; }
 
 /* each destination */
 .nv-a {
@@ -586,93 +590,62 @@
   55%      { box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-argon-glow) 0%, transparent); }
 }
 
-/* ---- mobile bottom sheet ------------------------------------------ */
-/* The sheet is the same milled material as the rail: a specular hairline
-   along its leading edge, and an argon bloom rising from the bottom so the
-   panel reads as lit from within rather than pasted on. */
-.nv-sheet {
-  transform-origin: bottom center;
-  will-change: transform;
-  /* The sheet owns vertical panning so the page never scrolls behind it. */
-  touch-action: pan-y;
-}
-.nv-sheet::before {
-  content: "";
-  position: absolute;
-  inset-inline: 22%;
-  top: 0;
-  height: 1px;
-  pointer-events: none;
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,.34), transparent);
-}
-.nv-sheet::after {
-  content: "";
-  position: absolute;
-  inset-inline: 0;
-  bottom: 0;
-  height: 42%;
-  pointer-events: none;
-  border-radius: inherit;
-  background: radial-gradient(
-    120% 100% at 50% 100%,
-    color-mix(in srgb, var(--color-argon) 13%, transparent),
-    transparent 70%
-  );
+/* ---- mobile index menu -------------------------------------------- */
+/* Short viewports (landscape phones) get a tighter rhythm so the whole
+   index and its actions fit without the list colliding with the CTA. */
+@media (max-height: 520px) {
+  .nv-li-a { padding-block: 11px; }
+  .nv-li-label { font-size: 19px; }
 }
 
-/* ---- sheet rows ---------------------------------------------------- */
-/* Touch has no hover, so the craft lives in the press response and in how
-   the current destination is lit. */
-.nv-m {
+
+/* A full-screen table of contents. Nothing here sets `display`, so the
+   Tailwind visibility utilities in the markup stay authoritative. */
+.nv-menu {
+  /* The panel owns vertical panning; the page never scrolls behind it. */
+  overscroll-behavior: contain;
+}
+
+/* hairline between entries, inset so it reads as typographic rule */
+.nv-li + .nv-li .nv-li-a {
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+}
+.nv-li-a {
   -webkit-tap-highlight-color: transparent;
   will-change: transform, opacity;
 }
+.nv-li-a:active .nv-li-num,
+.nv-li-a:active { opacity: .72; }
 
-/* the lit opening behind the current page */
-.nv-m-lit {
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  pointer-events: none;
-  background: linear-gradient(
-    -90deg,
-    color-mix(in srgb, var(--color-argon-glow) 15%, transparent),
-    transparent 58%
-  );
-}
-.nv-m-lit::before {
-  content: "";
-  position: absolute;
-  inset-block: 10px;
-  inset-inline-end: 0;
-  width: 2px;
-  border-radius: 2px;
-  background: var(--color-argon-glow);
-  box-shadow: 0 0 12px color-mix(in srgb, var(--color-argon-glow) 80%, transparent);
-}
-
-/* a small aperture dot that fills in on the active row */
-.nv-m-dot {
+/* the current page is marked by a lit aperture, not a heavy fill */
+.nv-li-dot {
   position: relative;
-  width: 6px; height: 6px;
+  width: 7px;
+  height: 7px;
   flex: none;
   border-radius: 50%;
-  border: 1px solid currentColor;
-  opacity: .3;
-  transition: opacity .4s ease, background-color .4s ease, box-shadow .4s ease;
-}
-.nv-m-dot.is-on {
-  opacity: 1;
-  border-color: var(--color-argon-glow);
   background: var(--color-argon-glow);
-  box-shadow: 0 0 10px color-mix(in srgb, var(--color-argon-glow) 85%, transparent);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--color-argon-glow) 85%, transparent);
+}
+.nv-li-dot::after {
+  content: "";
+  position: absolute;
+  inset: -5px;
+  border-radius: 50%;
+  border: 1px solid color-mix(in srgb, var(--color-argon-glow) 40%, transparent);
+  animation: nv-ring 2.6s ease-out infinite;
+}
+@keyframes nv-ring {
+  0%   { transform: scale(.72); opacity: .9; }
+  70%  { transform: scale(1.35); opacity: 0; }
+  100% { transform: scale(1.35); opacity: 0; }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .apr { display: none !important; }
   .has-aperture, .has-aperture * { cursor: auto; }
-  .nv-mark, .nv-a, .nv-t, .nv-glow, .nv-mk-s, .nv-p-f, .nv-shaft, .nv-m, .nv-m-dot, .nv-sheen, .nv-sheet {
+  .nv-mark, .nv-a, .nv-t, .nv-glow, .nv-mk-s, .nv-p-f, .nv-shaft, .nv-li-a, .nv-sheen {
     transition: none !important;
   }
-  .nv-pulse { animation: none !important; }
+  .nv-pulse, .nv-li-dot::after { animation: none !important; }
 }
