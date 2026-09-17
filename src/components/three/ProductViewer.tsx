@@ -46,11 +46,15 @@ export default function ProductViewer({ config, view, quality, interactive, acti
       </Suspense>
 
       <CameraRig size={size} />
+      {/* On touch, one finger must still scroll the page — otherwise the
+          viewer becomes a trap the visitor cannot swipe past. Rotating is
+          therefore a two-finger gesture on phones and a drag on desktop. */}
       <OrbitControls
         makeDefault
         enabled={interactive}
         enablePan={false}
         enableZoom={interactive}
+        touches={{ ONE: THREE.TOUCH.ROTATE, TWO: THREE.TOUCH.DOLLY_ROTATE }}
         minDistance={0.8}
         maxDistance={9}
         autoRotate={autoRotate}

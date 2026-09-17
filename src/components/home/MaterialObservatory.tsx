@@ -3,8 +3,8 @@
 import dynamic from "next/dynamic";
 import { useEffect, useRef, useState } from "react";
 import { glassLayers, quality } from "@/lib/content";
-import { prefersReducedMotion, supportsWebGL } from "@/lib/device";
-import { useScrollProgress } from "@/lib/motion";
+import { supportsWebGL } from "@/lib/device";
+import { useMediaQuery, useScrollProgress } from "@/lib/motion";
 import { cn, faDigits } from "@/lib/utils";
 import { SplitHeadline } from "@/components/ui/SplitHeadline";
 import { SectionLabel } from "@/components/ui/SectionLabel";
@@ -23,15 +23,19 @@ export function MaterialObservatory() {
   const sectionRef = useRef<HTMLElement>(null);
   const progress = useScrollProgress(sectionRef);
   const separationRef = useRef(0);
-  const [active, setActive] = useState<ObservatoryLayer>("argon");
+  // Only the explicit user choice is state; the scroll-driven layer is
+  // derived. Storing both would mean syncing one to the other in an effect.
+  const [picked, setPicked] = useState<ObservatoryLayer | null>(null);
   const [manual, setManual] = useState<number | null>(null);
   const [webgl, setWebgl] = useState<boolean | null>(null);
-  const [reduced, setReduced] = useState(false);
   const [inView, setInView] = useState(false);
+  const reduced = useMediaQuery("(prefers-reduced-motion: reduce)");
 
+  // WebGL support cannot be read during render (it allocates a context), so
+  // it stays an effect — but it now runs on its own, once.
   useEffect(() => {
-    setWebgl(supportsWebGL());
-    setReduced(prefersReducedMotion());
+    const id = requestAnimationFrame(() => setWebgl(supportsWebGL()));
+    return () => cancelAnimationFrame(id);
   }, []);
 
   useEffect(() => {
@@ -45,14 +49,19 @@ export function MaterialObservatory() {
   // Scroll → separation (pinned range 0.18 … 0.72 of the section travel).
   const scrollSep = Math.min(1, Math.max(0, (progress - 0.18) / 0.54));
   const separation = manual ?? scrollSep;
-  separationRef.current = separation;
 
-  // Auto-focus the layer that's "in the light" as we pull apart.
+  // The scene reads this every frame; writing it during render would be a
+  // side effect, so it is mirrored here instead.
   useEffect(() => {
-    if (manual !== null) return;
-    const idx = Math.min(ORDER.length - 1, Math.floor(scrollSep * ORDER.length));
-    if (scrollSep > 0.05) setActive(ORDER[idx]);
-  }, [scrollSep, manual]);
+    separationRef.current = separation;
+  }, [separation]);
+
+  // The layer "in the light" as the stack pulls apart.
+  const autoLayer =
+    scrollSep > 0.05
+      ? ORDER[Math.min(ORDER.length - 1, Math.floor(scrollSep * ORDER.length))]
+      : "argon";
+  const active: ObservatoryLayer = picked ?? autoLayer;
 
   const activeIndex = ORDER.indexOf(active);
   const layer = glassLayers.find((l) => l.id === active) ?? glassLayers[3];
@@ -67,7 +76,7 @@ export function MaterialObservatory() {
         {/* Stage */}
         <div className="absolute inset-0">
           {webgl ? (
-            <GlassObservatoryScene separationRef={separationRef} activeLayer={active} onPick={(l) => { setActive(l); setManual(separation < 0.4 ? 0.85 : separation); }} reducedMotion={reduced} active={inView} />
+            <GlassObservatoryScene separationRef={separationRef} activeLayer={active} onPick={(l) => { setPicked(l); setManual(separation < 0.4 ? 0.85 : separation); }} reducedMotion={reduced} active={inView} />
           ) : webgl === false ? (
             <SectionFallback separation={separation} active={active} />
           ) : null}
@@ -131,7 +140,7 @@ export function MaterialObservatory() {
                     key={id}
                     type="button"
                     data-cursor="detail"
-                    onClick={() => { setActive(id); setManual(Math.max(separation, 0.85)); }}
+                    onClick={() => { setPicked(id); setManual(Math.max(separation, 0.85)); }}
                     aria-pressed={on}
                     className={cn(
                       "group relative overflow-hidden rounded-2xl border px-3 py-3 text-right transition-all duration-300",

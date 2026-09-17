@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { prefersReducedMotion } from "@/lib/device";
+import { useEffect, useRef } from "react";
+import { useHydrated, useMediaQuery } from "@/lib/motion";
 import { IdentityField } from "./IdentityField";
 
 function easeOutCubic(t: number): number {
@@ -25,14 +25,13 @@ export function WindowThreshold() {
   const hintRef = useRef<HTMLDivElement>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
   const skipRef = useRef<HTMLButtonElement>(null);
-  const [reduced, setReduced] = useState<boolean | null>(null);
+  // Read during render via an external store: correct on the very first
+  // client paint and live if the OS setting changes mid-session.
+  const reduced = useMediaQuery("(prefers-reduced-motion: reduce)");
+  const hydrated = useHydrated();
 
   useEffect(() => {
-    setReduced(prefersReducedMotion());
-  }, []);
-
-  useEffect(() => {
-    if (reduced !== false) return;
+    if (!hydrated || reduced) return;
     const wrapper = wrapperRef.current;
     if (!wrapper) return;
 
@@ -74,7 +73,7 @@ export function WindowThreshold() {
 
     raf = requestAnimationFrame(apply);
     return () => cancelAnimationFrame(raf);
-  }, [reduced]);
+  }, [reduced, hydrated]);
 
   const skipIntro = () => {
     const wrapper = wrapperRef.current;
@@ -83,16 +82,32 @@ export function WindowThreshold() {
     window.scrollTo({ top: target, behavior: "smooth" });
   };
 
-  if (reduced) return null;
+  /* Reduced-motion visitors skip the kinetic hero entirely — but the page
+     must keep its H1, so emit the heading on its own. */
+  if (reduced) {
+    return (
+      <h1 className="sr-only">
+        در و پنجره پردیس — تولیدکننده درب و پنجره UPVC، آلومینیوم و شیشه‌های چندجداره در سبزوار
+      </h1>
+    );
+  }
 
   return (
     <section
       ref={wrapperRef}
       aria-label="ورود به تجربه‌ی پردیس"
       className="relative bg-graphite"
-      style={{ height: reduced === null ? "100vh" : "220vh" }}
+      style={{ height: hydrated ? "220vh" : "100vh" }}
     >
       <div className="sticky top-0 h-screen w-full overflow-hidden bg-graphite">
+        {/* The hero is a purely visual composition (every layer below is
+            aria-hidden), so the page's accessible title lives here. Visually
+            hidden, but it is what screen readers and search engines read as
+            the document's H1. */}
+        <h1 className="sr-only">
+          در و پنجره پردیس — تولیدکننده درب و پنجره UPVC، آلومینیوم و شیشه‌های چندجداره در سبزوار
+        </h1>
+
         {/* Layer 0 — the identity field beyond the window */}
         <div className="absolute inset-0">
           <IdentityField />

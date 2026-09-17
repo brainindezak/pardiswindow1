@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
+import { useMediaQuery } from "@/lib/motion";
 
 /**
  * APERTURE — the pointer is a window.
@@ -21,13 +22,15 @@ import { useEffect, useRef, useState } from "react";
  */
 export function CustomCursor() {
   const ref = useRef<HTMLDivElement>(null);
-  const [mounted, setMounted] = useState(false);
+  // Derived from the environment during render — no setState cascade, and it
+  // stays correct if the user plugs in a mouse or changes the motion setting.
+  const finePointer = useMediaQuery("(pointer: fine)");
+  const reduced = useMediaQuery("(prefers-reduced-motion: reduce)");
+  const mounted = finePointer && !reduced;
 
   useEffect(() => {
-    if (!window.matchMedia("(pointer: fine)").matches) return;
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    if (!mounted) return;
 
-    setMounted(true);
     document.documentElement.classList.add("has-aperture");
 
     let x = -100;
@@ -93,7 +96,7 @@ export function CustomCursor() {
       if (frame) cancelAnimationFrame(frame);
       document.documentElement.classList.remove("has-aperture");
     };
-  }, []);
+  }, [mounted]);
 
   if (!mounted) return null;
 

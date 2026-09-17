@@ -240,15 +240,29 @@ function Edge({ w, h }: { w: number; h: number }) {
   );
 }
 
+/* A tiny deterministic PRNG (mulberry32). Rendering must be pure, and a
+   fixed seed also means the gas cloud looks identical on every load and
+   between server and client. */
+function seededRandom(seed: number): () => number {
+  let a = seed >>> 0;
+  return () => {
+    a = (a + 0x6d2b79f5) >>> 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
 function ArgonParticles() {
   const ref = useRef<THREE.Points>(null);
   const count = 140;
   const positions = useMemo(() => {
+    const rand = seededRandom(0x9e3779b9);
     const arr = new Float32Array(count * 3);
     for (let i = 0; i < count; i++) {
-      arr[i * 3] = (Math.random() - 0.5) * (W - 0.1);
-      arr[i * 3 + 1] = (Math.random() - 0.5) * (H - 0.1);
-      arr[i * 3 + 2] = (Math.random() - 0.5) * (GAP - 0.02);
+      arr[i * 3] = (rand() - 0.5) * (W - 0.1);
+      arr[i * 3 + 1] = (rand() - 0.5) * (H - 0.1);
+      arr[i * 3 + 2] = (rand() - 0.5) * (GAP - 0.02);
     }
     return arr;
   }, []);

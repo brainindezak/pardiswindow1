@@ -23,7 +23,8 @@ import {
   type FamilyId,
   type StudioConfig,
 } from "@/lib/configurator";
-import { prefersReducedMotion, supportsWebGL } from "@/lib/device";
+import { supportsWebGL } from "@/lib/device";
+import { useMediaQuery } from "@/lib/motion";
 import { faDigits } from "@/lib/utils";
 import { Reveal } from "@/components/ui/Reveal";
 import { SectionLabel } from "@/components/ui/SectionLabel";
@@ -52,15 +53,15 @@ export function ProductStudio() {
   const [orderOpen, setOrderOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const [webgl, setWebgl] = useState<boolean | null>(null);
-  const [coarse, setCoarse] = useState(false);
-  const [reduced, setReduced] = useState(false);
   const [inView, setInView] = useState(false);
   const viewerRef = useRef<HTMLDivElement>(null);
+  // Environment queries are read during render and stay live.
+  const coarse = useMediaQuery("(pointer: coarse)");
+  const reduced = useMediaQuery("(prefers-reduced-motion: reduce)");
 
   useEffect(() => {
-    setWebgl(supportsWebGL());
-    setCoarse(window.matchMedia("(pointer: coarse)").matches);
-    setReduced(prefersReducedMotion());
+    const id = requestAnimationFrame(() => setWebgl(supportsWebGL()));
+    return () => cancelAnimationFrame(id);
   }, []);
 
   useEffect(() => {
@@ -323,8 +324,10 @@ export function ProductStudio() {
                       </ToolButton>
                     ))}
                 </div>
-                <p className="hidden font-technical text-[9px] uppercase tracking-[0.2em] text-cloud/45 md:block">
-                  {coarse ? "Use the buttons to rotate" : "Drag to rotate · Scroll to zoom"}
+                {/* The hint must reach touch users too — they are the ones
+                    who cannot discover drag-to-rotate on their own. */}
+                <p className="font-technical text-[9px] uppercase tracking-[0.2em] text-cloud/45">
+                  {coarse ? "برای چرخش از دکمه‌ها استفاده کنید" : "Drag to rotate · Scroll to zoom"}
                 </p>
               </div>
             </div>
@@ -726,8 +729,14 @@ function RangeField({
   max: number;
   onChange: (value: number) => void;
 }) {
+  // Mirror the committed value, resetting when it changes upstream. Storing
+  // the previous value beats syncing state from an effect.
   const [draft, setDraft] = useState(String(value));
-  useEffect(() => setDraft(String(value)), [value]);
+  const [lastValue, setLastValue] = useState(value);
+  if (value !== lastValue) {
+    setLastValue(value);
+    setDraft(String(value));
+  }
 
   return (
     <div className="mb-3 last:mb-0">
@@ -749,7 +758,7 @@ function RangeField({
             onKeyDown={(event) => {
               if (event.key === "Enter") (event.target as HTMLInputElement).blur();
             }}
-            className="w-20 rounded-lg border border-ink/10 bg-white/70 px-2 py-1 text-right font-technical text-xs text-ink focus:border-argon focus:outline-none"
+            className="dim-input w-[4.5rem] rounded-lg border border-ink/10 bg-white/70 px-2 py-1.5 text-right font-technical text-ink transition-shadow focus:border-argon focus:outline-none focus:ring-2 focus:ring-argon/20"
             aria-label={`${label} به میلی‌متر`}
           />
           <span className="font-technical text-[10px] text-ink-mute">mm</span>
@@ -762,8 +771,9 @@ function RangeField({
         step={10}
         value={value}
         onChange={(event) => onChange(Number(event.target.value))}
-        className="mt-2 w-full accent-argon"
+        className="studio-range mt-2 w-full accent-argon"
         aria-label={label}
+        aria-valuetext={`${value} میلی‌متر`}
       />
       <div className="mt-1 flex justify-between font-technical text-[9px] text-ink-mute">
         <span>{faDigits(min)}</span>
@@ -776,11 +786,11 @@ function RangeField({
 function Stepper({ value, onChange }: { value: number; onChange: (value: number) => void }) {
   return (
     <div className="inline-flex items-center rounded-full border border-ink/10 bg-white/60">
-      <button type="button" onClick={() => onChange(value - 1)} disabled={value <= 1} aria-label="کاهش تعداد" className="size-9 rounded-full text-lg text-ink disabled:opacity-30">
+      <button type="button" onClick={() => onChange(value - 1)} disabled={value <= 1} aria-label="کاهش تعداد" className="size-11 rounded-full text-lg text-ink transition-colors hover:bg-ink/5 active:scale-95 disabled:opacity-30">
         −
       </button>
       <span className="w-10 text-center font-technical text-sm text-ink">{faDigits(value)}</span>
-      <button type="button" onClick={() => onChange(value + 1)} aria-label="افزایش تعداد" className="size-9 rounded-full text-lg text-ink">
+      <button type="button" onClick={() => onChange(value + 1)} aria-label="افزایش تعداد" className="size-11 rounded-full text-lg text-ink transition-colors hover:bg-ink/5 active:scale-95">
         +
       </button>
     </div>

@@ -92,19 +92,23 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       <body className="min-h-screen bg-paper text-ink antialiased">
         <script
           type="application/ld+json"
-          // eslint-disable-next-line react/no-danger
+           
           dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
         />
+        {/* Skip link: sits above the safe area so it is never hidden under a
+            notch, and is the first thing a keyboard user reaches. */}
         <a
           href="#main-content"
-          className="fixed right-4 top-4 z-[100] -translate-y-24 rounded-full bg-ink px-5 py-3 text-sm text-cloud transition-transform focus:translate-y-0"
+          className="fixed right-4 top-[calc(env(safe-area-inset-top)+1rem)] z-[100] -translate-y-32 rounded-full bg-ink px-5 py-3 text-sm font-medium text-cloud shadow-lg transition-transform duration-200 focus-visible:translate-y-0"
         >
           رفتن به محتوای اصلی
         </a>
         <SmoothScrollProvider>
           <CustomCursor />
           <SiteHeader />
-          <main id="main-content">{children}</main>
+          <main id="main-content" tabIndex={-1} className="focus:outline-none">
+            {children}
+          </main>
           <SiteFooter />
         </SmoothScrollProvider>
       </body>

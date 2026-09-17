@@ -90,6 +90,18 @@
     border-radius: 2px;
   }
 
+  /* Remove the grey flash on tap while keeping :focus-visible intact —
+     the flash is what makes a site feel like a document instead of an app. */
+  a, button, [role="button"], input, select, textarea, summary {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Never let a long unbroken token (a URL, an email, a part number)
+     push the layout wider than the phone. */
+  h1, h2, h3, h4, p, li, a, span {
+    overflow-wrap: break-word;
+  }
+
   ::-webkit-scrollbar {
     width: 10px;
     height: 10px;
@@ -137,6 +149,8 @@
   .no-scrollbar {
     -ms-overflow-style: none;
     scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
   }
 
 
@@ -497,6 +511,58 @@
 .nv-p { position: absolute; inset-inline: 14px; bottom: 0; height: 1px; overflow: hidden; pointer-events: none; }
 .nv-p-f { position: absolute; inset-block: 0; right: 0; background: var(--color-argon); transition: width .12s linear; }
 .nv-dark .nv-p-f { background: var(--color-argon-glow); }
+
+/* ================================================================== */
+/* FORM ERGONOMICS — touch, iOS zoom, and slider affordance            */
+/* ================================================================== */
+
+/* 16px is the iOS zoom threshold; the numeric dimension field is the one
+   remaining input small enough to trigger it. */
+.dim-input { font-size: 16px; }
+@media (min-width: 768px) { .dim-input { font-size: .75rem; } }
+
+/* A range thumb sized for a fingertip, not a mouse cursor. */
+.studio-range {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 22px;
+  background: transparent;
+  cursor: pointer;
+}
+.studio-range::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-ink) 12%, transparent);
+}
+.studio-range::-moz-range-track {
+  height: 4px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-ink) 12%, transparent);
+}
+.studio-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  margin-top: -8px;
+  border-radius: 50%;
+  background: var(--color-argon);
+  border: 3px solid #fff;
+  box-shadow: 0 2px 8px -1px color-mix(in srgb, var(--color-argon) 70%, transparent);
+  transition: transform .18s var(--ease-pardis), box-shadow .18s ease;
+}
+.studio-range::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--color-argon);
+  border: 3px solid #fff;
+  box-shadow: 0 2px 8px -1px color-mix(in srgb, var(--color-argon) 70%, transparent);
+}
+.studio-range:active::-webkit-slider-thumb { transform: scale(1.14); }
+.studio-range:focus-visible::-webkit-slider-thumb {
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-argon) 26%, transparent);
+}
 
 /* ---- primary action ---------------------------------------------- */
 .nv-cta:hover { box-shadow: 0 10px 26px -12px color-mix(in srgb, var(--color-argon) 85%, transparent); }

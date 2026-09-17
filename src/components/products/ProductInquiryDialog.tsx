@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type ChangeEvent, type FormEvent } from "react";
+import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from "react";
 import type { ProductFamily } from "@/lib/content";
 import { submitContactRequest } from "@/lib/contact-client";
 
@@ -23,16 +23,61 @@ export function ProductInquiryDialog({
   const [status, setStatus] = useState<Status>("idle");
   const [message, setMessage] = useState("");
   const [form, setForm] = useState({ name: "", phone: "", city: "", dimensions: presetDimensions ?? "" });
+  const panelRef = useRef<HTMLDivElement>(null);
 
+  /* A modal must own the keyboard while it is open: Escape closes it, Tab
+     cycles inside it, and focus returns to whatever opened it on close.
+     Without the trap, tabbing silently walks the page behind the overlay. */
   useEffect(() => {
+    const opener = document.activeElement as HTMLElement | null;
+    const SELECTOR =
+      'a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])';
+
     const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
+      if (event.key === "Escape") {
+        onClose();
+        return;
+      }
+      if (event.key !== "Tab") return;
+      const panel = panelRef.current;
+      if (!panel) return;
+      const nodes = Array.from(panel.querySelectorAll<HTMLElement>(SELECTOR)).filter(
+        (el) => el.offsetParent !== null || el === document.activeElement,
+      );
+      if (nodes.length === 0) return;
+      const first = nodes[0];
+      const last = nodes[nodes.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
     };
-    document.body.style.overflow = "hidden";
+
+    const { scrollY } = window;
+    const body = document.body;
+    const prev = { position: body.style.position, top: body.style.top, width: body.style.width, overflow: body.style.overflow };
+    body.style.position = "fixed";
+    body.style.top = `-${scrollY}px`;
+    body.style.width = "100%";
+    body.style.overflow = "hidden";
+
     window.addEventListener("keydown", onKey);
+    const t = window.setTimeout(() => {
+      panelRef.current?.querySelector<HTMLElement>(SELECTOR)?.focus();
+    }, 60);
+
     return () => {
-      document.body.style.overflow = "";
+      window.clearTimeout(t);
       window.removeEventListener("keydown", onKey);
+      body.style.position = prev.position;
+      body.style.top = prev.top;
+      body.style.width = prev.width;
+      body.style.overflow = prev.overflow;
+      window.scrollTo(0, scrollY);
+      opener?.focus?.();
     };
   }, [onClose]);
 
@@ -78,12 +123,15 @@ export function ProductInquiryDialog({
       aria-labelledby="product-order-title"
       onMouseDown={(event) => event.target === event.currentTarget && onClose()}
     >
-      <div className="relative max-h-[92dvh] w-full max-w-2xl overflow-y-auto rounded-[28px] border border-white/70 bg-paper/92 p-6 shadow-[0_40px_120px_-40px_rgba(0,0,0,0.8)] backdrop-blur-2xl md:p-10">
+      <div
+        ref={panelRef}
+        className="dlg-panel relative max-h-[92dvh] w-full max-w-2xl overflow-y-auto overscroll-contain rounded-[28px] border border-white/70 bg-paper/92 p-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))] shadow-[0_40px_120px_-40px_rgba(0,0,0,0.8)] backdrop-blur-2xl md:p-10"
+      >
         <button
           type="button"
           onClick={onClose}
           aria-label="بستن پنجره سفارش"
-          className="absolute left-5 top-5 flex size-9 items-center justify-center rounded-full border border-ink/15 text-lg text-ink-soft transition-colors hover:border-argon hover:text-argon"
+          className="absolute left-4 top-4 flex size-11 items-center justify-center rounded-full border border-ink/15 bg-paper/80 text-lg text-ink-soft transition-colors hover:border-argon hover:text-argon active:scale-95"
         >
           ×
         </button>
@@ -125,17 +173,17 @@ export function ProductInquiryDialog({
             <div className="grid gap-4 sm:grid-cols-2">
               <label className="grid gap-2 text-xs font-medium text-ink-soft">
                 نام و نام‌خانوادگی
-                <input required minLength={2} value={form.name} onChange={update("name")} className="order-input" placeholder="مثلاً محمد رضایی" />
+                <input required minLength={2} autoComplete="name" enterKeyHint="next" value={form.name} onChange={update("name")} className="order-input" placeholder="مثلاً محمد رضایی" />
               </label>
               <label className="grid gap-2 text-xs font-medium text-ink-soft">
                 شماره تماس
-                <input required dir="ltr" value={form.phone} onChange={update("phone")} className="order-input text-right" placeholder="09xxxxxxxxx" />
+                <input required dir="ltr" type="tel" inputMode="tel" autoComplete="tel" enterKeyHint="next" value={form.phone} onChange={update("phone")} className="order-input text-right" placeholder="09xxxxxxxxx" />
               </label>
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
               <label className="grid gap-2 text-xs font-medium text-ink-soft">
                 شهر
-                <input value={form.city} onChange={update("city")} className="order-input" placeholder="مثلاً مشهد" />
+                <input autoComplete="address-level2" enterKeyHint="next" value={form.city} onChange={update("city")} className="order-input" placeholder="مثلاً مشهد" />
               </label>
               <label className="grid gap-2 text-xs font-medium text-ink-soft">
                 توضیح تکمیلی (اختیاری)
@@ -169,16 +217,26 @@ export function ProductInquiryDialog({
           border: 1px solid var(--color-paper-line);
           border-radius: 14px;
           background: rgba(255, 255, 255, 0.45);
-          padding: 0.85rem 1rem;
-          font-size: 0.875rem;
+          padding: 0.8rem 1rem;
+          /* iOS zooms the viewport on focus below 16px. */
+          font-size: 16px;
+          line-height: 1.5;
           color: var(--color-ink);
+          -webkit-appearance: none;
+          appearance: none;
           transition:
             border-color 0.2s,
+            box-shadow 0.2s,
             background 0.2s;
         }
+        @media (min-width: 768px) {
+          .order-input { font-size: 0.9rem; }
+        }
+        .order-input::placeholder { color: var(--color-ink-mute); }
         .order-input:focus {
           outline: none;
           border-color: var(--color-argon);
+          box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-argon) 16%, transparent);
           background: rgba(255, 255, 255, 0.75);
         }
       `}</style>

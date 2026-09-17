@@ -3,6 +3,7 @@
 import { useEffect, useState, type ChangeEvent, type FormEvent, type ReactNode } from "react";
 import { submitContactRequest } from "@/lib/contact-client";
 import { contactTopics } from "@/lib/content";
+import { cn } from "@/lib/utils";
 
 type Status = "idle" | "loading" | "success" | "error";
 type ContactTopicValue = (typeof contactTopics)[number]["value"];
@@ -28,9 +29,11 @@ export function ContactForm() {
   useEffect(() => {
     const requestedTopic = new URLSearchParams(window.location.search).get("topic");
     const matchingTopic = contactTopics.find((topic) => topic.value === requestedTopic);
-    if (matchingTopic) {
-      setValues((current) => ({ ...current, topic: matchingTopic.value }));
-    }
+    if (!matchingTopic) return;
+    const id = requestAnimationFrame(() =>
+      setValues((current) => ({ ...current, topic: matchingTopic.value })),
+    );
+    return () => cancelAnimationFrame(id);
   }, []);
 
   const update = (key: keyof typeof values) => (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) =>
@@ -48,7 +51,18 @@ export function ContactForm() {
       if (!data.ok) {
         setStatus("error");
         setFeedback(data.message ?? "ثبت درخواست با خطا مواجه شد.");
-        setFieldErrors(data.fieldErrors ?? {});
+        const errors = data.fieldErrors ?? {};
+        setFieldErrors(errors);
+        // Move the caret to the first problem so the visitor is not left
+        // hunting for it — especially important on a long mobile form.
+        const firstKey = Object.keys(errors)[0];
+        if (firstKey) {
+          requestAnimationFrame(() => {
+            const el = document.getElementById(firstKey);
+            el?.focus({ preventScroll: true });
+            el?.scrollIntoView({ block: "center", behavior: "smooth" });
+          });
+        }
         return;
       }
 
@@ -85,6 +99,10 @@ export function ContactForm() {
             id="name"
             required
             minLength={2}
+            autoComplete="name"
+            enterKeyHint="next"
+            aria-invalid={!!fieldErrors.name}
+            aria-describedby={fieldErrors.name ? "name-error" : undefined}
             value={values.name}
             onChange={update("name")}
             className="input"
@@ -96,6 +114,12 @@ export function ContactForm() {
             id="phone"
             required
             dir="ltr"
+            type="tel"
+            inputMode="tel"
+            autoComplete="tel"
+            enterKeyHint="next"
+            aria-invalid={!!fieldErrors.phone}
+            aria-describedby={fieldErrors.phone ? "phone-error" : undefined}
             value={values.phone}
             onChange={update("phone")}
             className="input text-right"
@@ -105,19 +129,32 @@ export function ContactForm() {
       </div>
 
       <div className="grid gap-5 sm:grid-cols-2">
-        <Field label="ایمیل (اختیاری)" htmlFor="email" error={fieldErrors.email?.[0]}>
+        <Field label="ایمیل" htmlFor="email" optional error={fieldErrors.email?.[0]}>
           <input
             id="email"
             type="email"
             dir="ltr"
+            inputMode="email"
+            autoComplete="email"
+            enterKeyHint="next"
+            aria-invalid={!!fieldErrors.email}
+            aria-describedby={fieldErrors.email ? "email-error" : undefined}
             value={values.email}
             onChange={update("email")}
             className="input text-right"
             placeholder="name@email.com"
           />
         </Field>
-        <Field label="شهر (اختیاری)" htmlFor="city">
-          <input id="city" value={values.city} onChange={update("city")} className="input" placeholder="مثلاً مشهد" />
+        <Field label="شهر" htmlFor="city" optional>
+          <input
+            id="city"
+            autoComplete="address-level2"
+            enterKeyHint="next"
+            value={values.city}
+            onChange={update("city")}
+            className="input"
+            placeholder="مثلاً مشهد"
+          />
         </Field>
       </div>
 
@@ -139,7 +176,10 @@ export function ContactForm() {
           rows={5}
           value={values.message}
           onChange={update("message")}
-          className="input resize-none"
+          enterKeyHint="send"
+          aria-invalid={!!fieldErrors.message}
+          aria-describedby={fieldErrors.message ? "message-error" : undefined}
+          className="input resize-y"
           placeholder="ابعاد، تعداد، نوع سیستم یا هر توضیح دیگری که به مشاوره کمک می‌کند..."
         />
       </Field>
@@ -172,14 +212,41 @@ export function ContactForm() {
           border-radius: 0.75rem;
           border: 1px solid var(--color-paper-line);
           background: var(--color-paper);
-          padding: 0.85rem 1rem;
-          font-size: 0.875rem;
+          padding: 0.8rem 1rem;
+          /* 16px is the threshold below which iOS Safari zooms the page on
+             focus — a jarring jump that then leaves the layout offset. */
+          font-size: 16px;
+          line-height: 1.5;
           color: var(--color-ink);
-          transition: border-color 200ms ease;
+          -webkit-appearance: none;
+          appearance: none;
+          transition: border-color .22s ease, box-shadow .22s ease, background-color .22s ease;
         }
+        @media (min-width: 768px) {
+          .input { font-size: 0.9rem; }
+        }
+        .input::placeholder { color: var(--color-ink-mute); }
+        .input:hover { border-color: color-mix(in srgb, var(--color-ink) 22%, transparent); }
         .input:focus {
           outline: none;
           border-color: var(--color-argon);
+          background: #fff;
+          box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-argon) 16%, transparent);
+        }
+        .input[aria-invalid="true"] {
+          border-color: color-mix(in srgb, var(--color-error) 60%, transparent);
+        }
+        .input[aria-invalid="true"]:focus {
+          box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-error) 16%, transparent);
+        }
+        /* native select needs its own affordance once appearance is reset */
+        select.input {
+          background-image: linear-gradient(45deg, transparent 50%, var(--color-ink-soft) 50%),
+            linear-gradient(135deg, var(--color-ink-soft) 50%, transparent 50%);
+          background-position: calc(1rem) calc(50% + 2px), calc(1rem + 5px) calc(50% + 2px);
+          background-size: 5px 5px, 5px 5px;
+          background-repeat: no-repeat;
+          padding-left: 2.25rem;
         }
       `}</style>
     </form>
@@ -190,20 +257,42 @@ function Field({
   label,
   htmlFor,
   error,
+  optional,
   children,
 }: {
   label: string;
   htmlFor: string;
   error?: string;
+  optional?: boolean;
   children: ReactNode;
 }) {
   return (
     <div className="flex flex-col gap-2">
-      <label htmlFor={htmlFor} className="text-xs font-medium text-ink-soft">
-        {label}
+      <label htmlFor={htmlFor} className="flex items-baseline gap-1.5 text-xs font-medium text-ink-soft">
+        <span>{label}</span>
+        {optional ? (
+          <span className="text-[10px] font-normal text-ink-mute">اختیاری</span>
+        ) : (
+          <span aria-hidden className="text-argon">*</span>
+        )}
       </label>
       {children}
-      {error ? <p className="text-xs text-error">{error}</p> : null}
+      {/* aria-live so screen readers announce validation as it appears */}
+      <p
+        id={`${htmlFor}-error`}
+        role={error ? "alert" : undefined}
+        className={cn(
+          "flex items-center gap-1.5 overflow-hidden text-xs text-error transition-all duration-300",
+          error ? "max-h-10 opacity-100" : "max-h-0 opacity-0",
+        )}
+      >
+        {error ? (
+          <>
+            <span aria-hidden className="inline-block size-1 shrink-0 rounded-full bg-error" />
+            {error}
+          </>
+        ) : null}
+      </p>
     </div>
   );
 }

@@ -48,7 +48,12 @@ export function SiteHeader() {
     return () => window.removeEventListener("scroll", onScroll);
   }, [pathname]);
 
-  useEffect(() => setOpen(false), [pathname]);
+  // Close the sheet on navigation, scheduled so it does not cascade a
+  // render synchronously inside the effect.
+  useEffect(() => {
+    const id = requestAnimationFrame(() => setOpen(false));
+    return () => cancelAnimationFrame(id);
+  }, [pathname]);
 
   /* Lock the page behind the mobile sheet. iOS Safari ignores
      `overflow:hidden` on the root, so the body is pinned at its current

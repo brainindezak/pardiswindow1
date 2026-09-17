@@ -122,8 +122,8 @@ export function ProjectLightArchive() {
             <div className="flex items-center justify-between border-b border-cloud/10 pb-5">
               <span className="font-technical text-[10px] uppercase tracking-[0.24em] text-cloud/45">Project dossier</span>
               <div className="flex items-center gap-2">
-                <button type="button" onClick={() => step(-1)} aria-label="قبلی" className="flex size-9 items-center justify-center rounded-full border border-cloud/20 hover:border-bronze hover:text-bronze">→</button>
-                <button type="button" onClick={() => step(1)} aria-label="بعدی" className="flex size-9 items-center justify-center rounded-full border border-cloud/20 hover:border-bronze hover:text-bronze">←</button>
+                <button type="button" onClick={() => step(-1)} aria-label="قبلی" className="flex size-11 items-center justify-center rounded-full border border-cloud/20 transition-colors hover:border-bronze hover:text-bronze active:scale-95">→</button>
+                <button type="button" onClick={() => step(1)} aria-label="بعدی" className="flex size-11 items-center justify-center rounded-full border border-cloud/20 transition-colors hover:border-bronze hover:text-bronze active:scale-95">←</button>
               </div>
             </div>
 

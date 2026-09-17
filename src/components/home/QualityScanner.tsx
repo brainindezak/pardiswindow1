@@ -33,8 +33,12 @@ export function QualityScanner() {
   useEffect(() => {
     if (!running) return;
     let i = 0;
-    setStamped(new Set());
-    setActiveId(GATES[0].id);
+    // Reset on the next frame so the run does not cascade a render inside
+    // the effect body.
+    const reset = requestAnimationFrame(() => {
+      setStamped(new Set());
+      setActiveId(GATES[0].id);
+    });
     const t = window.setInterval(() => {
       setStamped((s) => new Set(s).add(GATES[i].id));
       i += 1;
@@ -45,12 +49,18 @@ export function QualityScanner() {
       }
       setActiveId(GATES[i].id);
     }, 1400);
-    return () => window.clearInterval(t);
+    return () => {
+      cancelAnimationFrame(reset);
+      window.clearInterval(t);
+    };
   }, [running]);
 
+  const startedRef = useRef(false);
   useEffect(() => {
-    if (seen && stamped.size === 0 && !running) setRunning(true);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    if (!seen || startedRef.current) return;
+    startedRef.current = true;
+    const id = requestAnimationFrame(() => setRunning(true));
+    return () => cancelAnimationFrame(id);
   }, [seen]);
 
   const sheet = useCountUp(125, seen, 1600) / 100; // 1.25 mm
@@ -150,9 +160,12 @@ function DialGauge({ settle, pass }: { settle: boolean; pass: boolean }) {
   const [angle, setAngle] = useState(-120);
   useEffect(() => {
     if (!settle) return;
-    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    if (reduced) { setAngle(0); return; }
     let raf = 0;
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (reduced) {
+      raf = requestAnimationFrame(() => setAngle(0));
+      return () => cancelAnimationFrame(raf);
+    }
     const t0 = performance.now();
     const tick = (now: number) => {
       const t = Math.min(1, (now - t0) / 2200);

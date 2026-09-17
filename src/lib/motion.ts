@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type RefObject } from "react";
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore, type RefObject } from "react";
 
 /**
  * Returns 0→1 as `ref` travels from entering the bottom of the viewport to
@@ -66,8 +66,10 @@ export function useCountUp(target: number, start: boolean, duration = 1400): num
     if (!start) return;
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     if (reduced) {
-      setValue(target);
-      return;
+      // Jump straight to the final value, but do it on the next frame so the
+      // update is not a synchronous cascading render inside the effect body.
+      frame.current = requestAnimationFrame(() => setValue(target));
+      return () => cancelAnimationFrame(frame.current);
     }
     const t0 = performance.now();
     const tick = (now: number) => {
@@ -82,3 +84,35 @@ export function useCountUp(target: number, start: boolean, duration = 1400): num
   return value;
 }
 
+/**
+ * Subscribe to a CSS media query the React-correct way.
+ *
+ * `useSyncExternalStore` reads the value during render (no setState-in-effect
+ * cascade) and keeps it live if the user changes the setting or rotates the
+ * device. The server snapshot is `false`, so SSR markup matches the
+ * pre-hydration client render.
+ */
+export function useMediaQuery(query: string): boolean {
+  const subscribe = useCallback(
+    (onChange: () => void) => {
+      const mql = window.matchMedia(query);
+      mql.addEventListener("change", onChange);
+      return () => mql.removeEventListener("change", onChange);
+    },
+    [query],
+  );
+  return useSyncExternalStore(
+    subscribe,
+    () => window.matchMedia(query).matches,
+    () => false,
+  );
+}
+
+/** True once the component has hydrated on the client. */
+export function useHydrated(): boolean {
+  return useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false,
+  );
+}
