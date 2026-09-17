@@ -1,0 +1,455 @@
+@import "tailwindcss";
+@import "lenis/dist/lenis.css";
+
+/* ---------------------------------------------------------------------- */
+/* PARDIS WINDOW — design tokens                                          */
+/* Concept: Architecture × Material × Light × Engineering.                */
+/* A restrained, editorial palette — cast-concrete paper, graphite ink,   */
+/* and two disciplined accents: "Argon" (the inert gas sealed inside      */
+/* every Pardis glazing unit) and "Bronze" (anodised aluminium).          */
+/* ---------------------------------------------------------------------- */
+@theme {
+  --font-sans: "Vazirmatn", "Tahoma", sans-serif;
+  --font-technical: "Space Grotesk", sans-serif;
+
+  --color-paper: #f3f1ea;
+  --color-paper-dim: #e9e5da;
+  --color-paper-line: #d9d3c4;
+  --color-ink: #15171a;
+  --color-ink-soft: #4d5158;
+  --color-ink-mute: #82868d;
+
+  --color-graphite: #0c0d10;
+  --color-graphite-soft: #16181d;
+  --color-graphite-line: #2a2d33;
+  --color-cloud: #f3f1ea;
+  --color-cloud-mute: #a7abb3;
+
+  --color-argon: #5b6ef5;
+  --color-argon-soft: #dde1fc;
+  --color-argon-glow: #8f9dff;
+  --color-bronze: #a9805a;
+  --color-bronze-soft: #ece1d3;
+
+  --color-success: #2f8f5b;
+  --color-error: #c0442f;
+
+  --color-product-ivory: #dcd9cf;
+  --color-product-steel: #b8bec4;
+  --color-product-glass: #b8d0d1;
+  --color-product-walnut: #8e6a52;
+
+  --shadow-soft: 0 30px 80px -40px rgba(12, 13, 16, 0.45);
+  --ease-pardis: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@layer base {
+  * {
+    border-color: var(--color-paper-line);
+  }
+
+  html {
+    background: var(--color-paper);
+    color-scheme: light;
+  }
+
+  html,
+  body {
+    height: 100%;
+  }
+
+  body {
+    background: var(--color-paper);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    font-feature-settings: "ss01" 1;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  ::selection {
+    background: var(--color-argon);
+    color: var(--color-cloud);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-argon);
+    outline-offset: 3px;
+    border-radius: 2px;
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: var(--color-paper);
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--color-paper-line);
+    border-radius: 999px;
+  }
+
+  html {
+    scrollbar-color: var(--color-paper-line) var(--color-paper);
+    scrollbar-width: thin;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.001ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.001ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+@layer utilities {
+  .fa-nums {
+    font-variant-numeric: tabular-nums;
+  }
+
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+
+  .identity-shine {
+    animation: pardis-shine 7.5s ease-in-out infinite;
+  }
+
+  .identity-beam {
+    animation: pardis-beam 16s ease-in-out infinite alternate;
+  }
+}
+
+@keyframes pardis-shine {
+  0% {
+    background-position: 130% 0;
+  }
+  55%,
+  100% {
+    background-position: -130% 0;
+  }
+}
+
+@keyframes pardis-beam {
+  from {
+    transform: translateX(-20%) rotate(24deg);
+  }
+  to {
+    transform: translateX(75%) rotate(24deg);
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Shared motion: split headline mask reveal                            */
+/* ------------------------------------------------------------------ */
+.split-headline .split-word { display: inline-block; overflow: hidden; vertical-align: bottom; padding-bottom: .08em; margin-bottom: -.08em; }
+.split-headline .split-word-inner { display: inline-block; transform: translateY(112%) rotate(2deg); opacity: 0; transition: transform 1s var(--ease-pardis), opacity .6s ease; transition-delay: var(--d, 0ms); }
+.split-headline.is-shown .split-word-inner { transform: translateY(0) rotate(0); opacity: 1; }
+
+/* Generic content swap (used by all sections for text changes) */
+.observatory-swap { animation: pardis-swap .55s var(--ease-pardis) both; }
+@keyframes pardis-swap { from { opacity: 0; transform: translateY(10px); filter: blur(4px); } to { opacity: 1; transform: none; filter: blur(0); } }
+.slide-in-right { animation: pardis-slide-r .7s var(--ease-pardis) both; }
+.slide-in-left { animation: pardis-slide-l .7s var(--ease-pardis) both; }
+@keyframes pardis-slide-r { from { opacity: 0; transform: translateX(-28px); } to { opacity: 1; transform: none; } }
+@keyframes pardis-slide-l { from { opacity: 0; transform: translateX(28px); } to { opacity: 1; transform: none; } }
+
+/* ------------------------------------------------------------------ */
+/* 02 · Optic Observatory                                               */
+/* ------------------------------------------------------------------ */
+.material-range {
+  appearance: none;
+  height: 3px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--color-argon) 0%, var(--color-argon) calc(var(--s, .3) * 100%), rgba(243,241,234,.18) calc(var(--s, .3) * 100%), rgba(243,241,234,.18) 100%);
+}
+.material-range::-webkit-slider-thumb { width: 17px; height: 17px; appearance: none; border: 2px solid var(--color-cloud); border-radius: 50%; background: var(--color-argon); box-shadow: 0 0 0 5px rgba(91,110,245,.2); cursor: ew-resize; }
+.material-range::-moz-range-thumb { width: 13px; height: 13px; border: 2px solid var(--color-cloud); border-radius: 50%; background: var(--color-argon); box-shadow: 0 0 0 5px rgba(91,110,245,.2); }
+
+/* ------------------------------------------------------------------ */
+/* 03 · Production Blueprint (self-drawing SVG)                          */
+/* ------------------------------------------------------------------ */
+.blueprint .bp-draw { stroke-dasharray: 1; stroke-dashoffset: 1; animation: bp-draw 1.6s var(--ease-pardis) forwards; }
+@keyframes bp-draw { to { stroke-dashoffset: 0; } }
+.blueprint .bp-pop { animation: bp-pop .6s var(--ease-pardis) both; transform-box: fill-box; transform-origin: center; }
+@keyframes bp-pop { from { opacity: 0; transform: scale(.92); } to { opacity: 1; transform: scale(1); } }
+.blueprint .bp-weld { animation: bp-weld 1.1s ease-out infinite; transform-box: fill-box; transform-origin: center; }
+@keyframes bp-weld { 0% { opacity: 1; transform: scale(.6); } 70% { opacity: .15; transform: scale(1.35); } 100% { opacity: 0; transform: scale(1.5); } }
+
+/* ------------------------------------------------------------------ */
+/* 04 · Measurement Bench                                               */
+/* ------------------------------------------------------------------ */
+.stamp { transform: rotate(-8deg) scale(1.6); opacity: 0; }
+.stamp.is-stamped { animation: stamp-in .45s cubic-bezier(.2,1.6,.4,1) forwards; }
+@keyframes stamp-in { 0% { transform: rotate(-8deg) scale(1.8); opacity: 0; } 60% { opacity: 1; } 100% { transform: rotate(-6deg) scale(1); opacity: 1; } }
+
+/* ------------------------------------------------------------------ */
+/* 05 · Light Projection Gallery (sun-path)                             */
+/* ------------------------------------------------------------------ */
+.light-stage { transition: background 700ms ease; }
+.light-sun { background: radial-gradient(circle 46% at var(--lx) var(--ly), var(--sun-soft), transparent 70%); mix-blend-mode: screen; transition: background 120ms linear; }
+.light-disc { background: radial-gradient(circle, rgba(255,245,224,1) 0%, var(--sun) 35%, transparent 70%); filter: blur(2px); box-shadow: 0 0 60px 20px var(--sun-soft); transition: left 120ms linear, top 120ms linear; }
+.light-facade { transform-style: preserve-3d; transition: transform 900ms var(--ease-pardis); }
+.light-shadow { background: rgba(0,0,0,.55); transform: translate(var(--sx), var(--sy)) scaleX(1.06); transition: transform 120ms linear; }
+.light-pane {
+  background:
+    linear-gradient(135deg, rgba(255,255,255,.06), transparent 50%),
+    rgba(12,13,16,.85);
+  box-shadow: inset var(--sx) var(--sy) 18px -10px rgba(0,0,0,.65);
+  transition: box-shadow 120ms linear;
+}
+/* Each pane reflects the sun from its own position (--px/--py computed per
+   cell in JS from the sun's screen position); --k scales the intensity by
+   distance so the specular sweep travels across the facade as the hour turns. */
+.light-reveal {
+  background: radial-gradient(55% 45% at var(--px, 50%) var(--py, 50%), var(--sun), transparent 72%);
+  mix-blend-mode: screen;
+  opacity: calc(.25 + var(--k, 0) * .75);
+  transition: opacity 120ms linear;
+}
+.light-mullion { opacity: .8; }
+.sun-range { appearance: none; height: 3px; border-radius: 999px; background: linear-gradient(90deg, rgba(169,128,90,.95) 0%, rgba(255,214,150,1) calc(var(--t, .5) * 100%), rgba(243,241,234,.18) calc(var(--t, .5) * 100%)); }
+.sun-range::-webkit-slider-thumb { width: 18px; height: 18px; appearance: none; border-radius: 50%; background: #ffe7b8; border: 2px solid #a9805a; box-shadow: 0 0 0 6px rgba(255,214,150,.18), 0 0 24px rgba(255,214,150,.7); cursor: ew-resize; }
+.sun-range::-moz-range-thumb { width: 14px; height: 14px; border-radius: 50%; background: #ffe7b8; border: 2px solid #a9805a; }
+
+/* ------------------------------------------------------------------ */
+/* 06 · Kinetic Threshold                                               */
+/* ------------------------------------------------------------------ */
+.portal-sash { transform-origin: right center; transform-style: preserve-3d; transform: rotateY(0deg); transition: transform 1.4s var(--ease-pardis), opacity .6s ease .9s; box-shadow: 0 40px 100px -40px rgba(0,0,0,.9); }
+.portal-sash.is-open { transform: rotateY(-108deg); opacity: 0; }
+.magnetic { will-change: transform; }
+
+@media (prefers-reduced-motion: reduce) {
+  .identity-shine, .identity-beam, .blueprint .bp-weld { animation: none !important; }
+  .blueprint .bp-draw { animation: none !important; stroke-dashoffset: 0 !important; }
+  .split-headline .split-word-inner { transform: none !important; opacity: 1 !important; transition: none !important; }
+  .portal-sash { transition: none !important; }
+  .portal-sash.is-open { opacity: 0; }
+}
+
+@keyframes pardis-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ================================================================== */
+/* APERTURE CURSOR — the pointer is a window                           */
+/*                                                                     */
+/* Drawn in mix-blend-mode:difference so the glyph inverts against     */
+/* whatever is beneath it. It is therefore always legible on paper,    */
+/* on graphite, on photography and on the WebGL canvases — with no     */
+/* colour-detection JS at all. That is the whole trick.                */
+/* ================================================================== */
+.has-aperture,
+.has-aperture a,
+.has-aperture button,
+.has-aperture [role="button"],
+.has-aperture input,
+.has-aperture select,
+.has-aperture textarea,
+.has-aperture label,
+.has-aperture summary { cursor: none; }
+
+@media (pointer: coarse) { .has-aperture, .has-aperture * { cursor: auto; } }
+
+.apr {
+  position: fixed;
+  left: 0; top: 0;
+  z-index: 9999;
+  width: 0; height: 0;
+  pointer-events: none;
+  opacity: 0;
+  mix-blend-mode: difference;
+  transition: opacity .22s linear;
+  will-change: transform;
+}
+
+/* the frame: four corner brackets that define a window without drawing
+   a full box — the eye completes the rectangle */
+.apr-f {
+  position: absolute;
+  left: 0; top: 0;
+  width: 19px; height: 19px;
+  translate: -50% -50%;
+  transition: width .34s cubic-bezier(.16,1,.3,1), height .34s cubic-bezier(.16,1,.3,1);
+}
+.apr-c {
+  position: absolute;
+  width: 6px; height: 6px;
+  border: 1px solid #fff;
+  transition: inset .34s cubic-bezier(.16,1,.3,1), opacity .24s ease;
+}
+.apr-c-tl { top: 0; left: 0; border-right: 0; border-bottom: 0; }
+.apr-c-tr { top: 0; right: 0; border-left: 0; border-bottom: 0; }
+.apr-c-bl { bottom: 0; left: 0; border-right: 0; border-top: 0; }
+.apr-c-br { bottom: 0; right: 0; border-left: 0; border-top: 0; }
+
+/* the mullions: the cross that makes it unmistakably a window */
+.apr-m {
+  position: absolute;
+  background: #fff;
+  transition: opacity .26s ease, transform .34s cubic-bezier(.16,1,.3,1);
+}
+.apr-m-v { left: 50%; top: 3px; bottom: 3px; width: 1px; translate: -50% 0; }
+.apr-m-h { top: 50%; left: 3px; right: 3px; height: 1px; translate: 0 -50%; }
+
+/* HOVER — the sashes part: verticals split outward, horizontal fades */
+.apr[data-on="1"] .apr-f { width: 27px; height: 27px; }
+.apr[data-on="1"] .apr-m-v { transform: scaleY(.55); opacity: .5; }
+.apr[data-on="1"] .apr-m-h { opacity: 0; }
+.apr[data-on="1"] .apr-c { width: 8px; height: 8px; }
+
+/* PRESS — the window shuts tight */
+.apr[data-press="1"] .apr-f { width: 14px; height: 14px; }
+.apr[data-press="1"] .apr-m-v { transform: scaleY(1); opacity: 1; }
+.apr[data-press="1"] .apr-m-h { opacity: 1; }
+
+/* ================================================================== */
+/* SILL NAV — a rail read as a window sill in elevation                */
+/*                                                                     */
+/* Restraint: one hairline, exact type, and a single travelling        */
+/* aperture beneath the active destination. The one flourish is that   */
+/* hovering a link drops a short shaft of light below the sill, as if  */
+/* the opening were letting light through.                             */
+/* ================================================================== */
+.nv {
+  position: relative;
+  border-radius: 16px;
+  border: 1px solid;
+  backdrop-filter: blur(20px) saturate(1.3);
+  -webkit-backdrop-filter: blur(20px) saturate(1.3);
+  transition: background-color .45s ease, border-color .45s ease, box-shadow .45s ease;
+}
+.nv-dark {
+  border-color: rgba(255,255,255,.13);
+  background-color: rgba(11,12,15,.6);
+  box-shadow: 0 16px 44px -30px rgba(0,0,0,.95);
+}
+.nv-light {
+  border-color: rgba(21,23,26,.09);
+  background-color: rgba(255,255,255,.76);
+  box-shadow: 0 12px 34px -26px rgba(21,23,26,.3);
+}
+
+/* nav row is the positioning context for the marker */
+.nv-row { position: relative; display: flex; align-items: center; }
+
+/* each destination */
+.nv-a {
+  position: relative;
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 9px 13px;
+  font-size: 13.5px;
+  font-weight: 500;
+  line-height: 1;
+  white-space: nowrap;
+  transition: color .3s ease;
+}
+.nv-i {
+  font-family: var(--font-technical);
+  font-size: 8px;
+  letter-spacing: .12em;
+  opacity: .38;
+  transition: opacity .3s ease, color .3s ease;
+}
+.nv-a:hover .nv-i, .nv-a:focus-visible .nv-i { opacity: .85; }
+.nv-a[aria-current="page"] .nv-i { opacity: 1; color: var(--color-argon); }
+.nv-dark .nv-a[aria-current="page"] .nv-i { color: var(--color-argon-glow); }
+
+/* light shaft: falls from the sill under the hovered opening */
+.nv-shaft {
+  position: absolute;
+  left: 50%; top: 100%;
+  width: 34px; height: 16px;
+  translate: -50% 0;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity .32s ease;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--color-argon) 40%, transparent), transparent 82%);
+  clip-path: polygon(30% 0, 70% 0, 100% 100%, 0 100%);
+}
+.nv-a:hover .nv-shaft, .nv-a:focus-visible .nv-shaft { opacity: .85; }
+.nv-dark .nv-shaft { background: linear-gradient(180deg, color-mix(in srgb, var(--color-argon-glow) 46%, transparent), transparent 82%); }
+
+/* travelling aperture marker — a measured opening in the sill */
+.nv-mark {
+  position: absolute;
+  bottom: -1px; left: 0;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--color-argon);
+  opacity: 0;
+  transition: transform .52s cubic-bezier(.16,1,.3,1), width .52s cubic-bezier(.16,1,.3,1), opacity .3s ease;
+  will-change: transform, width;
+}
+.nv-dark .nv-mark { background: var(--color-argon-glow); }
+/* terminal ticks — the jambs of the opening */
+.nv-mark::before, .nv-mark::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  width: 1px; height: 7px;
+  background: inherit;
+  opacity: .8;
+}
+.nv-mark::before { left: 0; }
+.nv-mark::after { right: 0; }
+
+/* brand: a window elevation whose sashes open */
+.nv-mk { position: relative; width: 28px; height: 28px; perspective: 180px; }
+.nv-mk-s {
+  position: absolute; top: 0; bottom: 0;
+  width: calc(50% - .5px);
+  border: 1px solid currentColor;
+  opacity: .7;
+  transition: transform .45s cubic-bezier(.16,1,.3,1), opacity .3s ease;
+  backface-visibility: hidden;
+}
+.nv-mk-l { left: 0; border-right: 0; transform-origin: left center; }
+.nv-mk-r { right: 0; border-left: 0; transform-origin: right center; }
+.group:hover .nv-mk-l { transform: rotateY(-38deg); opacity: 1; }
+.group:hover .nv-mk-r { transform: rotateY(38deg); opacity: 1; }
+/* a warm interior appears as the sashes part */
+.nv-mk-g {
+  position: absolute; inset: 4px;
+  background: radial-gradient(60% 70% at 50% 62%, color-mix(in srgb, var(--color-bronze) 65%, transparent), transparent 76%);
+  opacity: 0;
+  transition: opacity .45s ease;
+}
+.group:hover .nv-mk-g { opacity: 1; }
+
+/* scroll progress along the very bottom edge */
+.nv-p { position: absolute; inset-inline: 14px; bottom: 0; height: 1px; overflow: hidden; pointer-events: none; }
+.nv-p-f { position: absolute; inset-block: 0; right: 0; background: var(--color-argon); transition: width .12s linear; }
+.nv-dark .nv-p-f { background: var(--color-argon-glow); }
+
+@media (prefers-reduced-motion: reduce) {
+  .apr { display: none !important; }
+  .has-aperture, .has-aperture * { cursor: auto; }
+  .nv-mark, .nv-a, .nv-mk-s, .nv-p-f, .nv-shaft { transition: none !important; }
+}
