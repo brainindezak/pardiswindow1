@@ -51,11 +51,23 @@
   html {
     background: var(--color-paper);
     color-scheme: light;
+    /* Any element that spills past the viewport widens the scrollable area.
+       A `position: fixed` header is sized against the VIEWPORT, not that
+       wider area, so the moment the user pans sideways the header stops
+       short and appears cut in half. Containing the horizontal axis at the
+       root removes the cause rather than patching the symptom. */
+    overflow-x: clip;
   }
 
   html,
   body {
     height: 100%;
+    /* Belt and braces: `clip` is not honoured by older iOS Safari. */
+    max-width: 100%;
+  }
+
+  body {
+    overflow-x: clip;
   }
 
   body {

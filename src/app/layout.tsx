@@ -62,6 +62,9 @@ export const viewport: Viewport = {
   ],
   width: "device-width",
   initialScale: 1,
+  // Lets the layout paint edge-to-edge on notched phones while
+  // `env(safe-area-inset-*)` keeps the header clear of the status bar.
+  viewportFit: "cover",
 };
 
 const structuredData = {

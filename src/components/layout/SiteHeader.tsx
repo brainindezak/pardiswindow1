@@ -49,10 +49,30 @@ export function SiteHeader() {
 
   useEffect(() => setOpen(false), [pathname]);
 
+  /* Lock the page behind the mobile sheet. iOS Safari ignores
+     `overflow:hidden` on the root, so the body is pinned at its current
+     offset and restored afterwards — otherwise closing the menu teleports
+     the visitor back to the top of the page. */
   useEffect(() => {
-    document.documentElement.style.overflow = open ? "hidden" : "";
+    if (!open) return;
+    const { scrollY } = window;
+    const body = document.body;
+    const prev = {
+      position: body.style.position,
+      top: body.style.top,
+      width: body.style.width,
+      overflow: body.style.overflow,
+    };
+    body.style.position = "fixed";
+    body.style.top = `-${scrollY}px`;
+    body.style.width = "100%";
+    body.style.overflow = "hidden";
     return () => {
-      document.documentElement.style.overflow = "";
+      body.style.position = prev.position;
+      body.style.top = prev.top;
+      body.style.width = prev.width;
+      body.style.overflow = prev.overflow;
+      window.scrollTo(0, scrollY);
     };
   }, [open]);
 
@@ -85,31 +105,36 @@ export function SiteHeader() {
 
   return (
     <>
-      <header dir="rtl" className="fixed inset-x-0 top-0 z-50 px-3 pt-3 md:px-6 md:pt-4">
+      <header
+        dir="rtl"
+        className="fixed inset-x-0 top-0 z-50 px-3 pt-[calc(env(safe-area-inset-top)+0.75rem)] md:px-6 md:pt-[calc(env(safe-area-inset-top)+1rem)]"
+      >
         <div className={cn("nv mx-auto max-w-[1400px]", dark ? "nv-dark" : "nv-light")}>
           <div
             className={cn(
-              "flex items-center justify-between gap-4 px-3 transition-[height] duration-500 md:px-5",
+              "flex items-center justify-between gap-2.5 px-3 transition-[height] duration-500 md:gap-4 md:px-5",
               scrolled ? "h-[54px] md:h-[60px]" : "h-[62px] md:h-[70px]",
             )}
           >
             {/* ── brand: a window elevation that opens ─────────── */}
+            {/* `min-w-0` lets the brand shrink instead of forcing the row
+                wider than the bar on narrow phones. */}
             <Link
               href="/"
               data-cursor="view"
               aria-label="در و پنجره پردیس — صفحه اصلی"
-              className="group flex shrink-0 items-center gap-2.5"
+              className="group flex min-w-0 items-center gap-2.5"
             >
-              <span className={cn("nv-mk block", dark ? "text-cloud" : "text-ink")} aria-hidden>
+              <span className={cn("nv-mk block shrink-0", dark ? "text-cloud" : "text-ink")} aria-hidden>
                 <span className="nv-mk-g" />
                 <span className="nv-mk-s nv-mk-l" />
                 <span className="nv-mk-s nv-mk-r" />
               </span>
-              <span className="flex flex-col leading-none">
-                <span className={cn("text-[14px] font-semibold tracking-tight md:text-[15px]", dark ? "text-cloud" : "text-ink")}>
+              <span className="flex min-w-0 flex-col leading-none">
+                <span className={cn("truncate text-[13.5px] font-semibold tracking-tight md:text-[15px]", dark ? "text-cloud" : "text-ink")}>
                   در و پنجره پردیس
                 </span>
-                <span className={cn("mt-1 font-technical text-[8px] uppercase tracking-[0.26em]", dark ? "text-cloud/45" : "text-ink-mute")}>
+                <span className={cn("mt-1 truncate font-technical text-[8px] uppercase tracking-[0.26em]", dark ? "text-cloud/45" : "text-ink-mute")}>
                   PARDIS · {faDigits(company.founded)}
                 </span>
               </span>
@@ -203,12 +228,16 @@ export function SiteHeader() {
           className={cn("absolute inset-0 bg-graphite/72 backdrop-blur-md transition-opacity duration-400", open ? "opacity-100" : "opacity-0")}
           onClick={() => setOpen(false)}
         />
+        {/* The sheet is anchored below the bar and is allowed to scroll: on
+            short screens (landscape phones) a fixed-height panel would push
+            the call-to-action out of reach. */}
         <nav
           aria-label="ناوبری موبایل"
           className={cn(
-            "absolute inset-x-3 top-[78px] overflow-hidden rounded-[18px] border border-white/[0.1] bg-[#0d0f13]/96 shadow-[0_40px_120px_-30px_rgba(0,0,0,.9)] backdrop-blur-2xl transition-all duration-500 ease-[cubic-bezier(.16,1,.3,1)]",
+            "absolute inset-x-3 top-[calc(env(safe-area-inset-top)+var(--nv-h))] max-h-[calc(100dvh-var(--nv-h)-env(safe-area-inset-top)-1.5rem)] overflow-y-auto overscroll-contain rounded-[18px] border border-white/[0.1] bg-[#0d0f13]/96 shadow-[0_40px_120px_-30px_rgba(0,0,0,.9)] backdrop-blur-2xl transition-all duration-500 ease-[cubic-bezier(.16,1,.3,1)]",
             open ? "translate-y-0 opacity-100" : "-translate-y-4 opacity-0",
           )}
+          style={{ ["--nv-h" as string]: scrolled ? "66px" : "74px" }}
         >
           <div className="p-3">
             {navLinks.map((link, i) => {
