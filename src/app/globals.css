@@ -586,34 +586,47 @@
   55%      { box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-argon-glow) 0%, transparent); }
 }
 
-/* ---- mobile sheet ------------------------------------------------- */
-/* Same specular hairline as the rail, so the sheet reads as the same
-   material rather than a generic dropdown. */
-.nv-sheet { transform-origin: top center; }
+/* ---- mobile bottom sheet ------------------------------------------ */
+/* The sheet is the same milled material as the rail: a specular hairline
+   along its leading edge, and an argon bloom rising from the bottom so the
+   panel reads as lit from within rather than pasted on. */
+.nv-sheet {
+  transform-origin: bottom center;
+  will-change: transform;
+  /* The sheet owns vertical panning so the page never scrolls behind it. */
+  touch-action: pan-y;
+}
 .nv-sheet::before {
   content: "";
   position: absolute;
-  inset-inline: 16%;
+  inset-inline: 22%;
   top: 0;
   height: 1px;
   pointer-events: none;
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,.3), transparent);
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,.34), transparent);
 }
-
-/* ---- mobile sheet rows ------------------------------------------- */
-/* Touch has no hover, so the craft has to live in the press response
-   and in how the active row is lit. */
-.nv-m { -webkit-tap-highlight-color: transparent; }
-.nv-m::after {
+.nv-sheet::after {
   content: "";
   position: absolute;
-  inset-inline: 14px;
+  inset-inline: 0;
   bottom: 0;
-  height: 1px;
-  background: rgba(255,255,255,.06);
+  height: 42%;
+  pointer-events: none;
+  border-radius: inherit;
+  background: radial-gradient(
+    120% 100% at 50% 100%,
+    color-mix(in srgb, var(--color-argon) 13%, transparent),
+    transparent 70%
+  );
 }
-.nv-m:last-of-type::after { display: none; }
-.nv-m:active { background: rgba(255,255,255,.05); }
+
+/* ---- sheet rows ---------------------------------------------------- */
+/* Touch has no hover, so the craft lives in the press response and in how
+   the current destination is lit. */
+.nv-m {
+  -webkit-tap-highlight-color: transparent;
+  will-change: transform, opacity;
+}
 
 /* the lit opening behind the current page */
 .nv-m-lit {
@@ -621,16 +634,17 @@
   inset: 0;
   border-radius: inherit;
   pointer-events: none;
-  background:
-    linear-gradient(90deg,
-      color-mix(in srgb, var(--color-argon-glow) 17%, transparent),
-      transparent 62%);
+  background: linear-gradient(
+    -90deg,
+    color-mix(in srgb, var(--color-argon-glow) 15%, transparent),
+    transparent 58%
+  );
 }
 .nv-m-lit::before {
   content: "";
   position: absolute;
-  inset-block: 9px;
-  inset-inline-start: 0;
+  inset-block: 10px;
+  inset-inline-end: 0;
   width: 2px;
   border-radius: 2px;
   background: var(--color-argon-glow);
@@ -639,11 +653,12 @@
 
 /* a small aperture dot that fills in on the active row */
 .nv-m-dot {
-  width: 5px; height: 5px;
+  position: relative;
+  width: 6px; height: 6px;
   flex: none;
   border-radius: 50%;
   border: 1px solid currentColor;
-  opacity: .32;
+  opacity: .3;
   transition: opacity .4s ease, background-color .4s ease, box-shadow .4s ease;
 }
 .nv-m-dot.is-on {
@@ -656,7 +671,7 @@
 @media (prefers-reduced-motion: reduce) {
   .apr { display: none !important; }
   .has-aperture, .has-aperture * { cursor: auto; }
-  .nv-mark, .nv-a, .nv-t, .nv-glow, .nv-mk-s, .nv-p-f, .nv-shaft, .nv-m, .nv-m-dot, .nv-sheen {
+  .nv-mark, .nv-a, .nv-t, .nv-glow, .nv-mk-s, .nv-p-f, .nv-shaft, .nv-m, .nv-m-dot, .nv-sheen, .nv-sheet {
     transition: none !important;
   }
   .nv-pulse { animation: none !important; }
