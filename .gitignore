@@ -1,0 +1,8 @@
+node_modules
+.next
+.env
+*.zip
+.api-stash
+tsconfig.tsbuildinfo
+out
+preview-root
