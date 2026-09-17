@@ -4,3 +4,4 @@ node_modules
 *.zip
 .api-stash
 tsconfig.tsbuildinfo
+out
