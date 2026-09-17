@@ -3,6 +3,7 @@ import { z } from "zod";
 import { db } from "@/db";
 import { contactRequests } from "@/db/schema";
 import { contactTopics } from "@/lib/content";
+import { clientIp, rateLimit } from "@/lib/rate-limit";
 
 const topicValues = contactTopics.map((t) => t.value) as [string, ...string[]];
 
@@ -21,6 +22,13 @@ const payloadSchema = z.object({
 });
 
 export async function POST(request: Request) {
+  if (!rateLimit(`contact:${clientIp(request)}`)) {
+    return NextResponse.json(
+      { ok: false, message: "تعداد درخواست‌ها زیاد است. لطفاً یک دقیقه بعد دوباره تلاش کنید." },
+      { status: 429 },
+    );
+  }
+
   let body: unknown;
   try {
     body = await request.json();

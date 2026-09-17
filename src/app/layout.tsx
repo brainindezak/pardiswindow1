@@ -5,6 +5,7 @@ import { SmoothScrollProvider } from "@/components/interaction/SmoothScrollProvi
 import { SiteFooter } from "@/components/layout/SiteFooter";
 import { SiteHeader } from "@/components/layout/SiteHeader";
 import { company } from "@/lib/content";
+import { isIndexable, siteUrl } from "@/lib/site";
 import "@fontsource/vazirmatn/300.css";
 import "@fontsource/vazirmatn/400.css";
 import "@fontsource/vazirmatn/500.css";
@@ -13,8 +14,6 @@ import "@fontsource/space-grotesk/400.css";
 import "@fontsource/space-grotesk/500.css";
 import "@fontsource/space-grotesk/700.css";
 import "./globals.css";
-
-const siteUrl = "https://pardiswindow.example";
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
@@ -51,6 +50,9 @@ export const metadata: Metadata = {
   alternates: {
     canonical: "/",
   },
+  robots: isIndexable
+    ? { index: true, follow: true }
+    : { index: false, follow: false, nocache: true },
 };
 
 export const viewport: Viewport = {

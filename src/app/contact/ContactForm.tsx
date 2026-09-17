@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, type ChangeEvent, type FormEvent, type ReactNode } from "react";
+import { submitContactRequest } from "@/lib/contact-client";
 import { contactTopics } from "@/lib/content";
 
 type Status = "idle" | "loading" | "success" | "error";
@@ -42,14 +43,9 @@ export function ContactForm() {
     setFieldErrors({});
 
     try {
-      const res = await fetch("/api/contact", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(values),
-      });
-      const data = await res.json();
+      const data = await submitContactRequest(values);
 
-      if (!res.ok || !data.ok) {
+      if (!data.ok) {
         setStatus("error");
         setFeedback(data.message ?? "ثبت درخواست با خطا مواجه شد.");
         setFieldErrors(data.fieldErrors ?? {});

@@ -2,6 +2,7 @@
 
 import { useEffect, useState, type ChangeEvent, type FormEvent } from "react";
 import type { ProductFamily } from "@/lib/content";
+import { submitContactRequest } from "@/lib/contact-client";
 
 type Status = "idle" | "loading" | "success" | "error";
 type SummaryLine = { label: string; value: string };
@@ -49,19 +50,14 @@ export function ProductInquiryDialog({
       `توضیح تکمیلی ابعاد/تعداد: ${form.dimensions || "ذکر نشده"}`,
     ];
     try {
-      const response = await fetch("/api/contact", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: form.name,
-          phone: form.phone,
-          city: form.city,
-          topic: "quote",
-          message: lines.join("\n"),
-        }),
+      const data = await submitContactRequest({
+        name: form.name,
+        phone: form.phone,
+        city: form.city,
+        topic: "quote",
+        message: lines.join("\n"),
       });
-      const data = await response.json();
-      if (!response.ok || !data.ok) {
+      if (!data.ok) {
         setStatus("error");
         setMessage(data.message ?? "ثبت درخواست انجام نشد.");
         return;

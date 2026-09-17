@@ -1,9 +1,12 @@
+export const dynamic = "force-static";
+
 import type { MetadataRoute } from "next";
+import { siteUrl } from "@/lib/site";
 
 const routes = ["", "/products", "/technology", "/quality", "/projects", "/knowledge", "/about", "/contact"];
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const base = "https://pardiswindow.example";
+  const base = siteUrl;
   const now = new Date();
   return routes.map((route) => ({
     url: `${base}${route}`,
